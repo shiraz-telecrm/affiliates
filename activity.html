@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Activity — TeleCRM Affiliates</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0f172a;
+      color: white;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      padding: 32px 20px 60px;
+    }
+
+    /* ── Header ── */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 760px;
+      margin: 0 auto 32px;
+    }
+
+    .logo { font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #38bdf8; }
+
+    .back {
+      font-size: 13px;
+      color: #64748b;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .back:hover { color: #94a3b8; }
+
+    /* ── User header ── */
+    .user-header {
+      max-width: 760px;
+      margin: 0 auto 28px;
+    }
+
+    .user-header h1 { font-size: 22px; font-weight: 700; }
+    .user-header .email { color: #64748b; font-size: 14px; margin-top: 4px; }
+
+    /* ── Stats row ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      max-width: 760px;
+      margin: 0 auto 32px;
+    }
+
+    .stat-card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .stat-card .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .stat-card .value { font-size: 22px; font-weight: 700; }
+    .stat-card .sub   { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+    .stat-card.green .value { color: #4ade80; }
+    .stat-card.yellow .value { color: #fbbf24; }
+    .stat-card.blue .value  { color: #38bdf8; }
+
+    /* ── Timeline ── */
+    .section-title {
+      max-width: 760px;
+      margin: 0 auto 16px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #475569;
+    }
+
+    .timeline {
+      max-width: 760px;
+      margin: 0 auto;
+      position: relative;
+      padding-left: 36px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #1e293b;
+    }
+
+    .tl-item {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .tl-dot {
+      position: absolute;
+      left: -30px;
+      top: 14px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .tl-card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 16px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .tl-card .desc  { font-size: 14px; line-height: 1.5; }
+    .tl-card .agent { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+    .tl-card .date  {
+      font-size: 12px;
+      color: #475569;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* type colours */
+    .dot-call         { background: #1e3a5f; color: #38bdf8; }
+    .dot-note         { background: #1a2e1a; color: #4ade80; }
+    .dot-email        { background: #2d1a3a; color: #c084fc; }
+    .dot-deal_created { background: #2d2000; color: #fbbf24; }
+    .dot-lead_created { background: #1e1e2e; color: #94a3b8; }
+
+    /* ── States ── */
+    .loading, .empty, .err-state {
+      max-width: 760px;
+      margin: 60px auto;
+      text-align: center;
+      color: #475569;
+      font-size: 15px;
+    }
+
+    .err-state { color: #f87171; }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #1e293b;
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="logo">TeleCRM &mdash; Affiliates</div>
+    <a class="back" href="index.html">&larr; Back</a>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    Fetching your activity&hellip;
+  </div>
+
+  <!-- Error -->
+  <div class="err-state" id="errState" style="display:none"></div>
+
+  <!-- Content (hidden until loaded) -->
+  <div id="content" style="display:none">
+    <div class="user-header">
+      <h1 id="userName"></h1>
+      <div class="email" id="userEmail"></div>
+    </div>
+
+    <div class="stats" id="statsRow"></div>
+
+    <div class="section-title">Activity Timeline</div>
+    <div class="timeline" id="timeline"></div>
+  </div>
+
+  <script>
+    // ── Config ──────────────────────────────────────────────────────────────
+    // Phase 1: point to your Vercel deployment URL once deployed.
+    // For local testing this falls back to same-origin (works on Vercel preview).
+    const API_BASE = window.location.hostname === 'localhost' || window.location.protocol === 'file:'
+      ? 'https://affiliates-lac.vercel.app'   // local dev: proxy to production
+      : '';                                  // same-origin when served from Vercel
+    // ────────────────────────────────────────────────────────────────────────
+
+    const TYPE_ICON = {
+      call:         '📞',
+      note:         '📝',
+      email:        '✉️',
+      deal_created: '💼',
+      lead_created: '🌱',
+    };
+
+    function fmt(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+        + ' · '
+        + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function fmtINR(n) {
+      return '₹' + Number(n).toLocaleString('en-IN');
+    }
+
+    async function load() {
+      const params = new URLSearchParams(window.location.search);
+      const email  = params.get('email');
+
+      if (!email) {
+        showError('No email provided. <a href="index.html" style="color:#38bdf8">Go back</a>.');
+        return;
+      }
+
+      try {
+        const res  = await fetch(`${API_BASE}/api/activity?email=${encodeURIComponent(email)}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          showError(body.error || `Error ${res.status} — no record found for this email.`);
+          return;
+        }
+        render(await res.json());
+      } catch (e) {
+        showError('Could not reach the server. Please try again later.');
+      }
+    }
+
+    function render(data) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+
+      document.getElementById('userName').textContent  = data.name  || data.email;
+      document.getElementById('userEmail').textContent = data.email || '';
+
+      // Stats
+      const stats = document.getElementById('statsRow');
+      const items = [
+        { label: 'Activities',      value: data.activities.length,               sub: 'total logged',          cls: 'blue'   },
+        { label: 'Deal Stage',      value: data.deal?.stage     || '—',          sub: data.deal?.title || '',  cls: ''       },
+        { label: 'Deal Value',      value: data.deal?.value     ? fmtINR(data.deal.value) : '—',  sub: 'pipeline',  cls: 'yellow' },
+        { label: 'Commission',      value: data.commission?.earned ? fmtINR(data.commission.earned) : '—', sub: `${fmtINR(data.commission?.pending || 0)} pending`, cls: 'green' },
+      ];
+
+      stats.innerHTML = items.map(i => `
+        <div class="stat-card ${i.cls}">
+          <div class="label">${i.label}</div>
+          <div class="value">${i.value}</div>
+          <div class="sub">${i.sub}</div>
+        </div>
+      `).join('');
+
+      // Timeline
+      const tl = document.getElementById('timeline');
+      if (!data.activities.length) {
+        tl.innerHTML = '<div class="empty">No activity recorded yet.</div>';
+        return;
+      }
+
+      tl.innerHTML = data.activities.map(a => `
+        <div class="tl-item">
+          <div class="tl-dot dot-${a.type}">${TYPE_ICON[a.type] || '•'}</div>
+          <div class="tl-card">
+            <div>
+              <div class="desc">${a.description}</div>
+              <div class="agent">by ${a.agent}</div>
+            </div>
+            <div class="date">${fmt(a.date)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function showError(msg) {
+      document.getElementById('loading').style.display  = 'none';
+      const el = document.getElementById('errState');
+      el.innerHTML = msg;
+      el.style.display = 'block';
+    }
+
+    load();
+  </script>
+</body>
+</html>
