@@ -75,9 +75,13 @@ module.exports = async function handler(req, res) {
 
     const partnerLead   = partnerSearch.body.data[0];
     const partnerFields = partnerLead.fields || {};
-    const sinceDate     = partnerLead.created_at
+    const meta          = partnerLead.leadMetaData || {};
+    const sinceDate     = meta.createdAt
+                       || meta.created_at
+                       || meta.createdOn
+                       || partnerLead.created_at
                        || partnerLead.createdAt
-                       || partnerLead.created
+                       || partnerLead.fbAcquiredTimestamp
                        || null;
 
     // ── Lead counts ──────────────────────────────────────────────────────────
@@ -109,6 +113,9 @@ module.exports = async function handler(req, res) {
       _debug: {
         partner_lead_id:       partnerLead._id || partnerLead.id || null,
         partner_lead_raw_keys: Object.keys(partnerLead),
+        lead_meta_data:        partnerLead.leadMetaData || null,
+        closed_search_status:  closedLeads.status,
+        closed_search_body:    closedLeads.body,
       },
     });
 
