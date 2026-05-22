@@ -64,7 +64,10 @@ module.exports = async function handler(req, res) {
     );
 
     if (search.status !== 200 || !search.body?.data?.length) {
-      return res.status(404).json({ error: 'No lead found for this email' });
+      return res.status(404).json({
+        error: 'No lead found for this email',
+        debug: { status: search.status, body: search.body },
+      });
     }
 
     const leadRaw = search.body.data[0];
