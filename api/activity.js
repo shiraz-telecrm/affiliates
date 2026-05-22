@@ -21,22 +21,42 @@ async function tcrm(path, method = 'GET', body = null) {
 function mapType(raw) {
   if (!raw) return 'note';
   const t = String(raw).toUpperCase();
-  if (t.includes('CALL'))    return 'call';
-  if (t === 'PAYMENT')       return 'payment';
-  if (t.includes('EMAIL'))   return 'email';
-  if (t.includes('LEAD'))    return 'lead_created';
-  if (t.includes('DEAL'))    return 'deal_created';
+  if (t.includes('CALL'))                        return 'call';
+  if (t === 'PAYMENT')                           return 'payment';
+  if (t.includes('EMAIL'))                       return 'email';
+  if (t === 'AUTO_UPDATE_LEAD_ACTION')           return 'lead_created';
+  if (t.includes('DEAL'))                        return 'deal_created';
   return 'note';
 }
 
-// ── Describe an action in plain text ───────────────────────────────────────
+// ── Human-readable description ──────────────────────────────────────────────
+const TYPE_LABELS = {
+  OUTGOING_CALL:           'Outbound call',
+  INCOMING_CALL:           'Inbound call',
+  PAYMENT:                 'Payment received',
+  SYSTEM_NOTE:             'System note added',
+  CUSTOM_API:              'Updated via API',
+  AUTO_UPDATE_LEAD_ACTION: 'Lead created',
+};
+
 function describe(a) {
   if (a.fields?.note)        return a.fields.note;
   if (a.fields?.description) return a.fields.description;
-  if (a.type === 'OUTGOING_CALL') return 'Outbound call';
-  if (a.type === 'INCOMING_CALL') return 'Inbound call';
-  if (a.type === 'PAYMENT')       return `Payment — ₹${Number(a.amount || 0).toLocaleString('en-IN')}`;
+  if (a.fields?.text)        return a.fields.text;
+  if (TYPE_LABELS[a.type])   return TYPE_LABELS[a.type];
+  // Custom action codes like ACTION_1003
+  if (/^ACTION_\d+$/.test(a.type || '')) return 'Custom action logged';
   return a.type || 'Activity logged';
+}
+
+// ── Extract date from action ─────────────────────────────────────────────────
+function getDate(a) {
+  return a.performed_at
+    || a.created_at
+    || a.createdAt
+    || a.timestamp
+    || a.date
+    || null;
 }
 
 // ── Main handler ────────────────────────────────────────────────────────────
@@ -64,10 +84,7 @@ module.exports = async function handler(req, res) {
     );
 
     if (search.status !== 200 || !search.body?.data?.length) {
-      return res.status(404).json({
-        error: 'No lead found for this email',
-        debug: { status: search.status, body: search.body },
-      });
+      return res.status(404).json({ error: 'No lead found for this email' });
     }
 
     const leadRaw = search.body.data[0];
@@ -87,18 +104,21 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch lead detail from TeleCRM' });
     }
 
-    const detailFields  = detail.body.fields  || fields;
-    const rawActions    = detail.body.actions || [];
+    const detailFields = detail.body.fields  || fields;
+    const rawActions   = detail.body.actions || [];
 
-    // Step 3: build timeline
-    const activities = rawActions.map((a, i) => ({
-      id:          i + 1,
-      type:        mapType(a.type),
-      rawType:     a.type,
-      date:        a.performed_at || a.created_at || new Date().toISOString(),
-      description: describe(a),
-      agent:       a.performed_by || 'TeleCRM',
-    }));
+    // Step 3: build timeline — skip purely internal system actions
+    const SKIP_TYPES = new Set(['CUSTOM_API']);
+    const activities = rawActions
+      .filter(a => !SKIP_TYPES.has(a.type))
+      .map((a, i) => ({
+        id:          i + 1,
+        type:        mapType(a.type),
+        rawType:     a.type,
+        date:        getDate(a),
+        description: describe(a),
+        agent:       a.performed_by || a.assignee || detailFields.assignee || 'TeleCRM',
+      }));
 
     // Step 4: commission from PAYMENT actions
     const payments          = rawActions.filter(a => a.type === 'PAYMENT');
@@ -110,10 +130,10 @@ module.exports = async function handler(req, res) {
       .reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
     res.status(200).json({
-      name:   detailFields.name  || email,
-      email:  detailFields.email || email,
-      phone:  detailFields.phone || null,
-      status: detailFields.status || null,
+      name:       detailFields.name   || email,
+      email:      detailFields.email  || email,
+      phone:      detailFields.phone  || null,
+      status:     detailFields.status || null,
       activities,
       deal: {
         title: detailFields.status || 'Active Lead',
