@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Affiliate Dashboard — TeleCRM</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0f172a;
+      color: white;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      padding: 32px 20px 60px;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 860px;
+      margin: 0 auto 32px;
+    }
+    .logo { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #38bdf8; }
+    .back { font-size: 13px; color: #64748b; text-decoration: none; }
+    .back:hover { color: #94a3b8; }
+
+    /* ── Profile header ── */
+    .profile {
+      max-width: 860px;
+      margin: 0 auto 28px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: #1e3a5f;
+      color: #38bdf8;
+      font-size: 22px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .profile-info h1 { font-size: 20px; font-weight: 700; }
+    .profile-info .sub { color: #64748b; font-size: 13px; margin-top: 4px; }
+    .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+    .badge-green  { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+    .badge-blue   { background: #0c1a2e; color: #38bdf8; border: 1px solid #1e3a5f; }
+    .badge-yellow { background: #1c1400; color: #fbbf24; border: 1px solid #78350f; }
+    .badge-gray   { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+
+    /* ── Section title ── */
+    .section-title {
+      max-width: 860px;
+      margin: 0 auto 14px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #475569;
+    }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      max-width: 860px;
+      margin: 0 auto 32px;
+    }
+    .stat-card {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .stat-card .label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .stat-card .value {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-card .sub {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 6px;
+    }
+    .green  .value { color: #4ade80; }
+    .yellow .value { color: #fbbf24; }
+    .blue   .value { color: #38bdf8; }
+    .red    .value { color: #f87171; }
+
+    /* ── Lead funnel ── */
+    .funnel {
+      max-width: 860px;
+      margin: 0 auto 32px;
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 20px 24px;
+    }
+    .funnel-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #0f172a;
+    }
+    .funnel-row:last-child { border-bottom: none; }
+    .funnel-label { font-size: 13px; color: #94a3b8; }
+    .funnel-count { font-size: 16px; font-weight: 700; }
+    .funnel-bar-wrap {
+      flex: 1;
+      margin: 0 16px;
+      height: 6px;
+      background: #0f172a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .funnel-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+
+    /* ── Bank details ── */
+    .bank-card {
+      max-width: 860px;
+      margin: 0 auto 32px;
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .bank-card .bank-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .bank-card .bank-title { font-size: 15px; font-weight: 600; }
+    .update-btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1.5px solid #334155;
+      color: #94a3b8;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .bank-fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .bank-field .bf-label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .bank-field .bf-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e2e8f0;
+      word-break: break-all;
+    }
+    .bf-value.empty { color: #475569; font-style: italic; }
+
+    /* ── Since when ── */
+    .tenure-card {
+      max-width: 860px;
+      margin: 0 auto 32px;
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .tenure-item .t-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .tenure-item .t-value { font-size: 15px; font-weight: 600; }
+    .tenure-item .t-sub   { font-size: 12px; color: #64748b; margin-top: 3px; }
+
+    /* ── States ── */
+    .loading, .err-state {
+      max-width: 860px;
+      margin: 60px auto;
+      text-align: center;
+      color: #475569;
+    }
+    .err-state { color: #f87171; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #1e293b;
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="logo">TeleCRM — Affiliates</div>
+    <a class="back" href="index.html">← Back</a>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    Loading your dashboard…
+  </div>
+  <div class="err-state" id="errState" style="display:none"></div>
+  <div id="content" style="display:none">
+
+    <!-- Profile -->
+    <div class="profile">
+      <div class="avatar" id="avatar"></div>
+      <div class="profile-info">
+        <h1 id="name"></h1>
+        <div class="sub" id="emailPhone"></div>
+        <div class="badges" id="badges"></div>
+      </div>
+    </div>
+
+    <!-- Commission stats -->
+    <div class="section-title">Commission</div>
+    <div class="stats-grid" id="commissionStats"></div>
+
+    <!-- Lead counts -->
+    <div class="section-title">Lead Performance</div>
+    <div class="funnel" id="funnel"></div>
+
+    <!-- Tenure -->
+    <div class="section-title">Tenure</div>
+    <div class="tenure-card" id="tenure"></div>
+
+    <!-- Bank details -->
+    <div class="section-title">Bank Details</div>
+    <div class="bank-card">
+      <div class="bank-header">
+        <div class="bank-title">Payout Account</div>
+        <button class="update-btn" title="Coming soon">Update Details</button>
+      </div>
+      <div class="bank-fields" id="bankFields"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost' || window.location.protocol === 'file:'
+      ? 'https://affiliates-lac.vercel.app'
+      : '';
+
+    function fmtINR(n) {
+      if (n == null) return '—';
+      return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function tenure(iso) {
+      if (!iso) return null;
+      const ms    = Date.now() - new Date(iso).getTime();
+      const days  = Math.floor(ms / 86400000);
+      const yrs   = Math.floor(days / 365);
+      const months= Math.floor((days % 365) / 30);
+      if (yrs > 0) return `${yrs}y ${months}m`;
+      if (months > 0) return `${months} months`;
+      return `${days} days`;
+    }
+
+    // Parse payment_details text blob into structured fields
+    function parsePaymentDetails(raw) {
+      if (!raw) return {};
+      const result = {};
+      raw.split('\n').forEach(line => {
+        const [key, ...rest] = line.split(':');
+        if (key && rest.length) result[key.trim()] = rest.join(':').trim();
+      });
+      return result;
+    }
+
+    async function load() {
+      const email = new URLSearchParams(window.location.search).get('email');
+      if (!email) { showError('No email provided. <a href="index.html" style="color:#38bdf8">Go back</a>.'); return; }
+
+      try {
+        const res  = await fetch(`${API_BASE}/api/metrics?email=${encodeURIComponent(email)}`);
+        if (!res.ok) {
+          const b = await res.json().catch(() => ({}));
+          showError(b.error || `Error ${res.status}`);
+          return;
+        }
+        render(await res.json());
+      } catch (e) {
+        showError('Could not reach the server. Please try again.');
+      }
+    }
+
+    function render(d) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+
+      // Avatar
+      document.getElementById('avatar').textContent = (d.name || '?')[0].toUpperCase();
+
+      // Profile
+      document.getElementById('name').textContent = d.name || d.email;
+      document.getElementById('emailPhone').textContent =
+        [d.email, d.phone ? `+${d.phone}` : null].filter(Boolean).join(' · ');
+
+      // Badges
+      const badgeData = [
+        d.status       ? { label: d.status,       cls: 'badge-green'  } : null,
+        d.kyc_status   ? { label: d.kyc_status,   cls: d.kyc_status === 'KYC Done' ? 'badge-blue' : 'badge-yellow' } : null,
+        d.affiliate_type ? { label: d.affiliate_type, cls: 'badge-gray' } : null,
+      ].filter(Boolean);
+
+      document.getElementById('badges').innerHTML = badgeData
+        .map(b => `<span class="badge ${b.cls}">${b.label}</span>`).join('');
+
+      // Commission stats
+      const c = d.commission || {};
+      document.getElementById('commissionStats').innerHTML = [
+        { label: 'Total Earned',   value: fmtINR(c.earned),     sub: 'lifetime',              cls: 'green'  },
+        { label: 'Pending Payout', value: fmtINR(c.pending),    sub: 'awaiting disbursement',  cls: 'yellow' },
+        { label: 'Commission Rate',value: c.percentage != null ? `${c.percentage}%` : '—', sub: d.affiliate_type || '', cls: 'blue' },
+      ].map(s => `
+        <div class="stat-card ${s.cls}">
+          <div class="label">${s.label}</div>
+          <div class="value">${s.value}</div>
+          <div class="sub">${s.sub}</div>
+        </div>`).join('');
+
+      // Lead funnel
+      const l       = d.leads || {};
+      const total   = l.total || 1; // avoid div by 0
+      const bd      = l.breakdown || {};
+      const rows = [
+        { label: 'Total Assigned', count: l.total,  pct: 100,                          color: '#38bdf8' },
+        { label: 'Won',            count: bd.Won,    pct: ((bd.Won||0)/total)*100,      color: '#4ade80' },
+        { label: 'Payment Pending',count: bd['Payment Pending'], pct: ((bd['Payment Pending']||0)/total)*100, color: '#fbbf24' },
+        { label: 'Lost',           count: bd.Lost,   pct: ((bd.Lost||0)/total)*100,     color: '#f87171' },
+        { label: 'Open',           count: l.open,    pct: ((l.open||0)/total)*100,      color: '#94a3b8' },
+      ].filter(r => r.count);
+
+      document.getElementById('funnel').innerHTML = rows.map(r => `
+        <div class="funnel-row">
+          <div class="funnel-label">${r.label}</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:${r.pct.toFixed(1)}%;background:${r.color}"></div>
+          </div>
+          <div class="funnel-count" style="color:${r.color}">${r.count ?? '—'}</div>
+        </div>`).join('');
+
+      // Tenure
+      const since = d.member_since;
+      document.getElementById('tenure').innerHTML = `
+        <div class="tenure-item">
+          <div class="t-label">Partner Since</div>
+          <div class="t-value">${fmtDate(since)}</div>
+          <div class="t-sub">${tenure(since) ? tenure(since) + ' ago' : ''}</div>
+        </div>
+        <div class="tenure-item">
+          <div class="t-label">Last Updated</div>
+          <div class="t-value">${fmtDate(d.last_updated)}</div>
+        </div>`;
+
+      // Bank details
+      const bank    = d.bank || {};
+      const parsed  = parsePaymentDetails(bank.payment_details);
+      const fields  = [
+        { label: 'Account Name',   value: parsed['Name']          || null },
+        { label: 'Bank Name',      value: parsed['Bank']          || null },
+        { label: 'Account Number', value: parsed['Account No']    || null },
+        { label: 'IFSC Code',      value: parsed['IFSC Code']     || bank.ifsc_code || null },
+      ];
+      document.getElementById('bankFields').innerHTML = fields.map(f => `
+        <div class="bank-field">
+          <div class="bf-label">${f.label}</div>
+          <div class="bf-value ${f.value ? '' : 'empty'}">${f.value || 'Not provided'}</div>
+        </div>`).join('');
+    }
+
+    function showError(msg) {
+      document.getElementById('loading').style.display = 'none';
+      const el = document.getElementById('errState');
+      el.innerHTML = msg;
+      el.style.display = 'block';
+    }
+
+    load();
+  </script>
+</body>
+</html>

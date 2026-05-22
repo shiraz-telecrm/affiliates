@@ -104,10 +104,16 @@ module.exports = async function handler(req, res) {
 
       // Commission (from partnership workspace custom fields)
       commission: {
-        percentage: f.percentage     ?? null,
-        earned:     f.earnings       ?? null,
+        percentage: f.percentage        ?? null,
+        earned:     f.earnings          ?? null,
         pending:    f.pending_commission ?? null,
         currency:   'INR',
+      },
+
+      // Bank details (for payout + future self-update form)
+      bank: {
+        payment_details: f.payment_details || null,   // free-text blob
+        ifsc_code:       f.ifsc_code_1     || null,   // structured IFSC field
       },
 
       // Live lead counts (from master affiliate workspace)
