@@ -29,6 +29,27 @@ async function countLeads(token, enterpriseId, assigneeEmail, status = null) {
   return r.body?.total_count ?? null;
 }
 
+// Find a team member's login email in the master workspace by matching their name.
+// Paginates through up to 5 pages (50 members) and returns the first name match.
+async function findMasterEmail(name) {
+  if (!name) return null;
+  const nameLower = name.toLowerCase().trim();
+  for (let skip = 0; skip < 50; skip += 10) {
+    const r = await tcrm(MASTER_TOKEN,
+      `/enterprise/${MASTER_ID}/team-members?limit=10&skip=${skip}`
+    );
+    if (r.status !== 200) break;
+    const members = r.body?.data || [];
+    const match = members.find(m =>
+      (m.name || '').toLowerCase().includes(nameLower) ||
+      nameLower.includes((m.name || '').toLowerCase())
+    );
+    if (match?.email) return match.email;
+    if (members.length < 10) break; // last page
+  }
+  return null;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -69,10 +90,21 @@ module.exports = async function handler(req, res) {
     // Convert Unix-ms timestamps to ISO strings
     const toISO = (ts) => ts ? new Date(Number(ts)).toISOString() : null;
 
-    // ── Step 3: lead counts from master affiliate workspace ──────────────────
+    // ── Step 3: resolve assignee email for master workspace ──────────────────
+    // Some affiliates have a different login email in the master workspace.
+    // Try their partnership email first; if 0 results, look up by name.
+    let assigneeEmail = email;
+    const quickCheck  = await countLeads(MASTER_TOKEN, MASTER_ID, email);
+    if (!quickCheck) {
+      const foundEmail = await findMasterEmail(f.name);
+      if (foundEmail) assigneeEmail = foundEmail;
+    }
+
+    // ── Step 4: lead counts from master affiliate workspace ──────────────────
     const [totalCount, ...closedCounts] = await Promise.all([
-      countLeads(MASTER_TOKEN, MASTER_ID, email),
-      ...CLOSED_STATUSES.map(s => countLeads(MASTER_TOKEN, MASTER_ID, email, s)),
+      quickCheck !== null ? Promise.resolve(quickCheck)
+                          : countLeads(MASTER_TOKEN, MASTER_ID, assigneeEmail),
+      ...CLOSED_STATUSES.map(s => countLeads(MASTER_TOKEN, MASTER_ID, assigneeEmail, s)),
     ]);
 
     const closedCount = closedCounts.every(c => c === null)

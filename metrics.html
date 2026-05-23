@@ -502,8 +502,9 @@
           <div class="funnel-count" style="color:${r.color}">${r.count ?? '—'} <span style="font-size:11px;color:#475569">›</span></div>
         </div>`).join('');
 
-      // Store email for drawer API calls
+      // Store email + name for drawer API calls (name used as fallback for team member lookup)
       drawerEmail = d.email;
+      drawerName  = d.name;
 
       // Wire up row clicks
       document.querySelectorAll('.funnel-row').forEach(row => {
@@ -560,6 +561,7 @@
     }
 
     let drawerEmail  = null;
+    let drawerName   = null;
     let drawerSkip   = 0;
     let drawerStatus = null;
     let drawerTotal  = 0;
@@ -592,7 +594,7 @@
       // For "Open": fetch all leads, backend returns all statuses for assignee.
       // We'll filter out closed ones client-side when status === '__open__' was chosen.
       // (drawerStatus is already null for both Total and Open — that's fine for display)
-      const qs = new URLSearchParams({ email: drawerEmail, skip: drawerSkip, limit: 50 });
+      const qs = new URLSearchParams({ email: drawerEmail, name: drawerName, skip: drawerSkip, limit: 50 });
       if (drawerStatus) qs.set('status', drawerStatus);
 
       const res  = await fetch(`${API_BASE}/api/leads?${qs}`);

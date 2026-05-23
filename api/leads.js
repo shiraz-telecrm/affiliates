@@ -33,7 +33,33 @@ module.exports = async function handler(req, res) {
   if (!email) return res.status(400).json({ error: 'email parameter required' });
   if (!MASTER_ID || !MASTER_TOKEN) return res.status(500).json({ error: 'Server not configured' });
 
-  const fields = { assignee: email };
+  // If no leads found by email, try looking up team member by name in master workspace
+  let assigneeEmail = email;
+  const quickCheck = await tcrm(
+    `/enterprise/${MASTER_ID}/lead/search?limit=1`,
+    'POST',
+    { fields: { assignee: email } }
+  );
+  if (quickCheck.status === 200 && quickCheck.body?.total_count === 0) {
+    // Try finding by name via team members list (up to 50 members)
+    const name = req.query.name || '';
+    if (name) {
+      const nameLower = name.toLowerCase().trim();
+      for (let s = 0; s < 50; s += 10) {
+        const tm = await tcrm(`/enterprise/${MASTER_ID}/team-members?limit=10&skip=${s}`);
+        if (tm.status !== 200) break;
+        const members = tm.body?.data || [];
+        const match = members.find(m =>
+          (m.name || '').toLowerCase().includes(nameLower) ||
+          nameLower.includes((m.name || '').toLowerCase())
+        );
+        if (match?.email) { assigneeEmail = match.email; break; }
+        if (members.length < 10) break;
+      }
+    }
+  }
+
+  const fields = { assignee: assigneeEmail };
   if (status) fields.status = status;
 
   const result = await tcrm(
