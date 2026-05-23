@@ -202,6 +202,116 @@
     .tenure-item .t-value { font-size: 15px; font-weight: 600; }
     .tenure-item .t-sub   { font-size: 12px; color: #64748b; margin-top: 3px; }
 
+    /* ── Clickable funnel rows ── */
+    .funnel-row { cursor: pointer; border-radius: 8px; transition: background 0.15s; }
+    .funnel-row:hover { background: #0f172a; }
+
+    /* ── Drawer overlay ── */
+    .drawer-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+    }
+    .drawer-overlay.open { display: block; }
+
+    .drawer {
+      position: fixed;
+      top: 0; right: 0;
+      width: 100%;
+      max-width: 420px;
+      height: 100vh;
+      background: #1e293b;
+      z-index: 101;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .drawer.open { transform: translateX(0); }
+
+    .drawer-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid #0f172a;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-shrink: 0;
+    }
+    .drawer-title { font-size: 16px; font-weight: 700; }
+    .drawer-sub   { font-size: 12px; color: #64748b; margin-top: 3px; }
+    .drawer-close {
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 4px;
+    }
+    .drawer-close:hover { color: white; }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 0;
+    }
+
+    .lead-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      border-bottom: 1px solid #0f172a;
+      gap: 12px;
+    }
+    .lead-item:last-child { border-bottom: none; }
+    .lead-name  { font-size: 14px; font-weight: 500; }
+    .lead-email { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+    .status-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .pill-won      { background: #052e16; color: #4ade80; }
+    .pill-lost     { background: #2d0a0a; color: #f87171; }
+    .pill-pending  { background: #1c1400; color: #fbbf24; }
+    .pill-open     { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    .pill-default  { background: #1e3a5f; color: #38bdf8; }
+
+    .drawer-loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: #475569;
+      font-size: 14px;
+    }
+    .drawer-spinner {
+      width: 24px; height: 24px;
+      border: 3px solid #334155;
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 12px;
+    }
+    .drawer-load-more {
+      margin: 16px 20px;
+      width: calc(100% - 40px);
+      padding: 10px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #94a3b8;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .drawer-load-more:hover { border-color: #38bdf8; color: #38bdf8; }
+
     /* ── States ── */
     .loading, .err-state {
       max-width: 860px;
@@ -267,6 +377,19 @@
       <div class="bank-fields" id="bankFields"></div>
     </div>
 
+  </div>
+
+  <!-- Slide-in drawer -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div>
+        <div class="drawer-title" id="drawerTitle">Leads</div>
+        <div class="drawer-sub"  id="drawerSub"></div>
+      </div>
+      <button class="drawer-close" id="drawerClose">✕</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
   </div>
 
   <script>
@@ -360,24 +483,34 @@
 
       // Lead funnel
       const l       = d.leads || {};
-      const total   = l.total || 1; // avoid div by 0
+      const total   = l.total || 1;
       const bd      = l.breakdown || {};
       const rows = [
-        { label: 'Total Assigned', count: l.total,  pct: 100,                          color: '#38bdf8' },
-        { label: 'Won',            count: bd.Won,    pct: ((bd.Won||0)/total)*100,      color: '#4ade80' },
-        { label: 'Payment Pending',count: bd['Payment Pending'], pct: ((bd['Payment Pending']||0)/total)*100, color: '#fbbf24' },
-        { label: 'Lost',           count: bd.Lost,   pct: ((bd.Lost||0)/total)*100,     color: '#f87171' },
-        { label: 'Open',           count: l.open,    pct: ((l.open||0)/total)*100,      color: '#94a3b8' },
+        { label: 'Total Assigned',  count: l.total,               status: null,              pct: 100,                                       color: '#38bdf8' },
+        { label: 'Won',             count: bd.Won,                 status: 'Won',             pct: ((bd.Won||0)/total)*100,                   color: '#4ade80' },
+        { label: 'Payment Pending', count: bd['Payment Pending'],  status: 'Payment Pending', pct: ((bd['Payment Pending']||0)/total)*100,    color: '#fbbf24' },
+        { label: 'Lost',            count: bd.Lost,                status: 'Lost',            pct: ((bd.Lost||0)/total)*100,                  color: '#f87171' },
+        { label: 'Open',            count: l.open,                 status: '__open__',        pct: ((l.open||0)/total)*100,                   color: '#94a3b8' },
       ].filter(r => r.count);
 
       document.getElementById('funnel').innerHTML = rows.map(r => `
-        <div class="funnel-row">
+        <div class="funnel-row" data-status="${r.status ?? ''}" data-label="${r.label}" data-color="${r.color}">
           <div class="funnel-label">${r.label}</div>
           <div class="funnel-bar-wrap">
             <div class="funnel-bar" style="width:${r.pct.toFixed(1)}%;background:${r.color}"></div>
           </div>
-          <div class="funnel-count" style="color:${r.color}">${r.count ?? '—'}</div>
+          <div class="funnel-count" style="color:${r.color}">${r.count ?? '—'} <span style="font-size:11px;color:#475569">›</span></div>
         </div>`).join('');
+
+      // Store email for drawer API calls
+      drawerEmail = d.email;
+
+      // Wire up row clicks
+      document.querySelectorAll('.funnel-row').forEach(row => {
+        row.addEventListener('click', () => {
+          openDrawer(row.dataset.label, row.dataset.status || null, row.dataset.color);
+        });
+      });
 
       // Tenure
       const since = d.member_since;
@@ -414,6 +547,97 @@
       el.innerHTML = msg;
       el.style.display = 'block';
     }
+
+    // ── Drawer logic ────────────────────────────────────────────────────────
+    const STATUS_PILL = {
+      'Won':             'pill-won',
+      'Lost':            'pill-lost',
+      'Payment Pending': 'pill-pending',
+    };
+
+    function pillClass(status) {
+      return STATUS_PILL[status] || 'pill-open';
+    }
+
+    let drawerEmail  = null;
+    let drawerSkip   = 0;
+    let drawerStatus = null;
+    let drawerTotal  = 0;
+
+    function openDrawer(label, status, color) {
+      drawerStatus = (status === '__open__') ? null : status;
+      drawerSkip   = 0;
+      drawerTotal  = 0;
+
+      document.getElementById('drawerTitle').textContent = label;
+      document.getElementById('drawerSub').textContent   = '';
+      document.getElementById('drawerBody').innerHTML    = `<div class="drawer-loading"><div class="drawer-spinner"></div>Loading…</div>`;
+      document.getElementById('drawerTitle').style.color = color;
+      document.getElementById('drawer').classList.add('open');
+      document.getElementById('drawerOverlay').classList.add('open');
+
+      // For "Open" we need all leads MINUS closed statuses — handled server-side via null status
+      // For "Total Assigned" status is null too, same endpoint
+      fetchLeads(true);
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer').classList.remove('open');
+      document.getElementById('drawerOverlay').classList.remove('open');
+    }
+
+    async function fetchLeads(fresh = false) {
+      if (fresh) drawerSkip = 0;
+
+      // For "Open": fetch all leads, backend returns all statuses for assignee.
+      // We'll filter out closed ones client-side when status === '__open__' was chosen.
+      // (drawerStatus is already null for both Total and Open — that's fine for display)
+      const qs = new URLSearchParams({ email: drawerEmail, skip: drawerSkip, limit: 50 });
+      if (drawerStatus) qs.set('status', drawerStatus);
+
+      const res  = await fetch(`${API_BASE}/api/leads?${qs}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        document.getElementById('drawerBody').innerHTML = `<div class="drawer-loading" style="color:#f87171">${data.error || 'Failed to load'}</div>`;
+        return;
+      }
+
+      drawerTotal = data.total_count;
+      document.getElementById('drawerSub').textContent = `${drawerTotal} lead${drawerTotal !== 1 ? 's' : ''}`;
+
+      const items = data.leads.map(l => `
+        <div class="lead-item">
+          <div>
+            <div class="lead-name">${l.name}</div>
+            ${l.email ? `<div class="lead-email">${l.email}</div>` : ''}
+          </div>
+          <span class="status-pill ${pillClass(l.status)}">${l.status || 'Unknown'}</span>
+        </div>`).join('');
+
+      if (fresh) {
+        document.getElementById('drawerBody').innerHTML = items || `<div class="drawer-loading">No leads found.</div>`;
+      } else {
+        // Remove existing load-more button then append
+        const btn = document.getElementById('loadMoreBtn');
+        if (btn) btn.remove();
+        document.getElementById('drawerBody').insertAdjacentHTML('beforeend', items);
+      }
+
+      drawerSkip += data.leads.length;
+      const loaded = drawerSkip;
+
+      if (loaded < drawerTotal) {
+        document.getElementById('drawerBody').insertAdjacentHTML('beforeend',
+          `<button class="drawer-load-more" id="loadMoreBtn" onclick="fetchLeads(false)">
+            Load more (${drawerTotal - loaded} remaining)
+          </button>`
+        );
+      }
+    }
+
+    document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+    document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
 
     load();
   </script>
