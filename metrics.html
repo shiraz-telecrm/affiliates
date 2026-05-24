@@ -9,46 +9,54 @@
 
     body {
       min-height: 100vh;
-      background: #0f172a;
-      color: white;
+      background: #f1f5f9;
       font-family: 'Segoe UI', Arial, sans-serif;
-      padding: 32px 20px 60px;
+      color: #0f172a;
     }
 
-    /* ── Top bar ── */
+    /* ── Topbar ── */
     .topbar {
+      background: #0f172a;
+      padding: 14px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      max-width: 860px;
-      margin: 0 auto 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
     }
     .logo { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #38bdf8; }
-    .back { font-size: 13px; color: #64748b; text-decoration: none; }
-    .back:hover { color: #94a3b8; }
+    .back { font-size: 13px; color: #94a3b8; text-decoration: none; }
+    .back:hover { color: #ffffff; }
+
+    /* ── Page wrapper ── */
+    .page { max-width: 900px; margin: 0 auto; padding: 32px 20px 64px; }
 
     /* ── Profile header ── */
     .profile {
-      max-width: 860px;
-      margin: 0 auto 28px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 24px 28px;
       display: flex;
       align-items: center;
       gap: 20px;
+      margin-bottom: 24px;
       flex-wrap: wrap;
     }
     .avatar {
-      width: 56px; height: 56px;
+      width: 54px; height: 54px;
       border-radius: 50%;
-      background: #1e3a5f;
-      color: #38bdf8;
-      font-size: 22px;
+      background: #dbeafe;
+      color: #2563eb;
+      font-size: 20px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
-    .profile-info h1 { font-size: 20px; font-weight: 700; }
+    .profile-info h1 { font-size: 20px; font-weight: 700; color: #0f172a; }
     .profile-info .sub { color: #64748b; font-size: 13px; margin-top: 4px; }
     .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
     .badge {
@@ -56,22 +64,21 @@
       font-weight: 600;
       padding: 3px 10px;
       border-radius: 20px;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
-    .badge-green  { background: #052e16; color: #4ade80; border: 1px solid #166534; }
-    .badge-blue   { background: #0c1a2e; color: #38bdf8; border: 1px solid #1e3a5f; }
-    .badge-yellow { background: #1c1400; color: #fbbf24; border: 1px solid #78350f; }
-    .badge-gray   { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    .badge-green  { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-blue   { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-amber  { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-gray   { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
 
-    /* ── Section title ── */
-    .section-title {
-      max-width: 860px;
-      margin: 0 auto 14px;
+    /* ── Section label ── */
+    .section-label {
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: #475569;
+      color: #94a3b8;
+      margin: 0 0 12px 2px;
     }
 
     /* ── Stat cards ── */
@@ -79,140 +86,129 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 14px;
-      max-width: 860px;
-      margin: 0 auto 32px;
+      margin-bottom: 28px;
     }
     .stat-card {
-      background: #1e293b;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 14px;
-      padding: 20px;
+      padding: 20px 22px;
     }
-    .stat-card .label {
+    .stat-card .sc-label {
       font-size: 11px;
-      color: #64748b;
+      font-weight: 600;
+      color: #94a3b8;
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 10px;
     }
-    .stat-card .value {
-      font-size: 26px;
-      font-weight: 700;
-      line-height: 1;
-    }
-    .stat-card .sub {
-      font-size: 12px;
-      color: #64748b;
-      margin-top: 6px;
-    }
-    .green  .value { color: #4ade80; }
-    .yellow .value { color: #fbbf24; }
-    .blue   .value { color: #38bdf8; }
-    .red    .value { color: #f87171; }
+    .stat-card .sc-value { font-size: 24px; font-weight: 700; line-height: 1; }
+    .stat-card .sc-sub   { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+    .sc-green  .sc-value { color: #16a34a; }
+    .sc-amber  .sc-value { color: #d97706; }
+    .sc-blue   .sc-value { color: #2563eb; }
 
-    /* ── Lead funnel ── */
-    .funnel {
-      max-width: 860px;
-      margin: 0 auto 32px;
-      background: #1e293b;
+    /* ── White content card ── */
+    .content-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 14px;
-      padding: 20px 24px;
-    }
-    .funnel-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #0f172a;
-    }
-    .funnel-row:last-child { border-bottom: none; }
-    .funnel-label { font-size: 13px; color: #94a3b8; }
-    .funnel-count { font-size: 16px; font-weight: 700; }
-    .funnel-bar-wrap {
-      flex: 1;
-      margin: 0 16px;
-      height: 6px;
-      background: #0f172a;
-      border-radius: 3px;
+      padding: 0;
+      margin-bottom: 28px;
       overflow: hidden;
     }
-    .funnel-bar {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.6s ease;
-    }
-
-    /* ── Bank details ── */
-    .bank-card {
-      max-width: 860px;
-      margin: 0 auto 32px;
-      background: #1e293b;
-      border-radius: 14px;
-      padding: 24px;
-    }
-    .bank-card .bank-header {
+    .content-card-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid #f1f5f9;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
     }
-    .bank-card .bank-title { font-size: 15px; font-weight: 600; }
+    .content-card-title { font-size: 14px; font-weight: 700; color: #0f172a; }
+
+    /* ── Lead funnel ── */
+    .funnel-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 13px 22px;
+      border-bottom: 1px solid #f8fafc;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .funnel-row:last-child { border-bottom: none; }
+    .funnel-row:hover { background: #f8fafc; }
+    .funnel-label { font-size: 13px; color: #374151; width: 150px; flex-shrink: 0; }
+    .funnel-bar-wrap {
+      flex: 1;
+      height: 7px;
+      background: #f1f5f9;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .funnel-bar { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+    .funnel-count {
+      font-size: 14px;
+      font-weight: 700;
+      width: 50px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .funnel-arrow { font-size: 12px; color: #cbd5e1; flex-shrink: 0; }
+
+    /* ── Tenure row ── */
+    .tenure-row {
+      display: flex;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .tenure-item {
+      flex: 1;
+      min-width: 160px;
+      padding: 18px 22px;
+      border-right: 1px solid #f1f5f9;
+    }
+    .tenure-item:last-child { border-right: none; }
+    .t-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .t-value { font-size: 15px; font-weight: 700; color: #0f172a; }
+    .t-sub   { font-size: 12px; color: #94a3b8; margin-top: 3px; }
+
+    /* ── Bank fields ── */
+    .bank-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0;
+    }
+    .bank-field {
+      padding: 16px 22px;
+      border-right: 1px solid #f1f5f9;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .bank-field:nth-child(2n) { border-right: none; }
+    .bank-field:nth-last-child(-n+2) { border-bottom: none; }
+    .bf-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .bf-value { font-size: 14px; font-weight: 500; color: #1e293b; }
+    .bf-value.empty { color: #cbd5e1; font-style: italic; }
+
     .update-btn {
       font-size: 12px;
       font-weight: 600;
       padding: 6px 14px;
-      border-radius: 8px;
-      background: transparent;
-      border: 1.5px solid #334155;
+      border-radius: 7px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
       color: #94a3b8;
       cursor: not-allowed;
-      opacity: 0.6;
     }
-    .bank-fields {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-    }
-    .bank-field .bf-label {
-      font-size: 11px;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 6px;
-    }
-    .bank-field .bf-value {
-      font-size: 14px;
-      font-weight: 500;
-      color: #e2e8f0;
-      word-break: break-all;
-    }
-    .bf-value.empty { color: #475569; font-style: italic; }
 
-    /* ── Since when ── */
-    .tenure-card {
-      max-width: 860px;
-      margin: 0 auto 32px;
-      background: #1e293b;
-      border-radius: 14px;
-      padding: 20px 24px;
-      display: flex;
-      gap: 32px;
-      flex-wrap: wrap;
-    }
-    .tenure-item .t-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-    .tenure-item .t-value { font-size: 15px; font-weight: 600; }
-    .tenure-item .t-sub   { font-size: 12px; color: #64748b; margin-top: 3px; }
-
-    /* ── Clickable funnel rows ── */
-    .funnel-row { cursor: pointer; border-radius: 8px; transition: background 0.15s; }
-    .funnel-row:hover { background: #0f172a; }
-
-    /* ── Drawer overlay ── */
+    /* ── Drawer ── */
     .drawer-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.55);
+      background: rgba(15,23,42,0.4);
       z-index: 100;
+      backdrop-filter: blur(2px);
     }
     .drawer-overlay.open { display: block; }
 
@@ -222,53 +218,54 @@
       width: 100%;
       max-width: 420px;
       height: 100vh;
-      background: #1e293b;
+      background: #ffffff;
       z-index: 101;
       transform: translateX(100%);
-      transition: transform 0.25s ease;
+      transition: transform 0.22s ease;
       display: flex;
       flex-direction: column;
+      box-shadow: -8px 0 40px rgba(15,23,42,0.12);
     }
     .drawer.open { transform: translateX(0); }
 
     .drawer-header {
-      padding: 20px 20px 16px;
-      border-bottom: 1px solid #0f172a;
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid #f1f5f9;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       flex-shrink: 0;
+      background: #fff;
     }
-    .drawer-title { font-size: 16px; font-weight: 700; }
-    .drawer-sub   { font-size: 12px; color: #64748b; margin-top: 3px; }
+    .drawer-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+    .drawer-sub   { font-size: 12px; color: #94a3b8; margin-top: 3px; }
     .drawer-close {
-      background: none;
+      background: #f1f5f9;
       border: none;
       color: #64748b;
-      font-size: 22px;
+      font-size: 16px;
       cursor: pointer;
-      line-height: 1;
-      padding: 0 4px;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .drawer-close:hover { color: white; }
+    .drawer-close:hover { background: #e2e8f0; color: #0f172a; }
 
-    .drawer-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px 0;
-    }
+    .drawer-body { flex: 1; overflow-y: auto; background: #fff; }
 
     .lead-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 20px;
-      border-bottom: 1px solid #0f172a;
+      padding: 13px 22px;
+      border-bottom: 1px solid #f8fafc;
       gap: 12px;
     }
     .lead-item:last-child { border-bottom: none; }
-    .lead-name  { font-size: 14px; font-weight: 500; }
-    .lead-email { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .lead-name  { font-size: 14px; font-weight: 600; color: #0f172a; }
+    .lead-email { font-size: 12px; color: #94a3b8; margin-top: 2px; }
 
     .status-pill {
       font-size: 11px;
@@ -278,52 +275,52 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .pill-won      { background: #052e16; color: #4ade80; }
-    .pill-lost     { background: #2d0a0a; color: #f87171; }
-    .pill-pending  { background: #1c1400; color: #fbbf24; }
-    .pill-open     { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
-    .pill-default  { background: #1e3a5f; color: #38bdf8; }
+    .pill-won     { background: #dcfce7; color: #15803d; }
+    .pill-lost    { background: #fee2e2; color: #dc2626; }
+    .pill-pending { background: #fef3c7; color: #b45309; }
+    .pill-open    { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
 
     .drawer-loading {
       text-align: center;
-      padding: 40px 20px;
-      color: #475569;
+      padding: 48px 20px;
+      color: #94a3b8;
       font-size: 14px;
     }
     .drawer-spinner {
       width: 24px; height: 24px;
-      border: 3px solid #334155;
-      border-top-color: #38bdf8;
+      border: 3px solid #e2e8f0;
+      border-top-color: #2563eb;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       margin: 0 auto 12px;
     }
     .drawer-load-more {
-      margin: 16px 20px;
-      width: calc(100% - 40px);
+      display: block;
+      margin: 14px 22px;
+      width: calc(100% - 44px);
       padding: 10px;
-      background: #0f172a;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
-      color: #94a3b8;
+      color: #475569;
       font-size: 13px;
       cursor: pointer;
       text-align: center;
     }
-    .drawer-load-more:hover { border-color: #38bdf8; color: #38bdf8; }
+    .drawer-load-more:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
 
     /* ── States ── */
     .loading, .err-state {
-      max-width: 860px;
-      margin: 60px auto;
       text-align: center;
-      color: #475569;
+      padding: 80px 20px;
+      color: #94a3b8;
+      font-size: 15px;
     }
-    .err-state { color: #f87171; }
+    .err-state { color: #dc2626; }
     .spinner {
       width: 32px; height: 32px;
-      border: 3px solid #1e293b;
-      border-top-color: #38bdf8;
+      border: 3px solid #e2e8f0;
+      border-top-color: #2563eb;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       margin: 0 auto 16px;
@@ -338,48 +335,54 @@
     <a class="back" href="index.html">← Back</a>
   </div>
 
-  <div class="loading" id="loading">
-    <div class="spinner"></div>
-    Loading your dashboard…
-  </div>
-  <div class="err-state" id="errState" style="display:none"></div>
-  <div id="content" style="display:none">
+  <div class="page">
+    <div class="loading" id="loading"><div class="spinner"></div>Loading your dashboard…</div>
+    <div class="err-state" id="errState" style="display:none"></div>
+    <div id="content" style="display:none">
 
-    <!-- Profile -->
-    <div class="profile">
-      <div class="avatar" id="avatar"></div>
-      <div class="profile-info">
-        <h1 id="name"></h1>
-        <div class="sub" id="emailPhone"></div>
-        <div class="badges" id="badges"></div>
+      <!-- Profile -->
+      <div class="profile">
+        <div class="avatar" id="avatar"></div>
+        <div class="profile-info">
+          <h1 id="name"></h1>
+          <div class="sub" id="emailPhone"></div>
+          <div class="badges" id="badges"></div>
+        </div>
       </div>
-    </div>
 
-    <!-- Commission stats -->
-    <div class="section-title">Commission</div>
-    <div class="stats-grid" id="commissionStats"></div>
+      <!-- Commission -->
+      <div class="section-label">Commission</div>
+      <div class="stats-grid" id="commissionStats"></div>
 
-    <!-- Lead counts -->
-    <div class="section-title">Lead Performance</div>
-    <div class="funnel" id="funnel"></div>
-
-    <!-- Tenure -->
-    <div class="section-title">Tenure</div>
-    <div class="tenure-card" id="tenure"></div>
-
-    <!-- Bank details -->
-    <div class="section-title">Bank Details</div>
-    <div class="bank-card">
-      <div class="bank-header">
-        <div class="bank-title">Payout Account</div>
-        <button class="update-btn" title="Coming soon">Update Details</button>
+      <!-- Lead funnel -->
+      <div class="section-label">Lead Performance</div>
+      <div class="content-card" id="funnelCard">
+        <div class="content-card-header">
+          <div class="content-card-title">Leads by Status</div>
+        </div>
+        <div id="funnel"></div>
       </div>
-      <div class="bank-fields" id="bankFields"></div>
-    </div>
 
+      <!-- Tenure -->
+      <div class="section-label">Tenure</div>
+      <div class="content-card">
+        <div class="tenure-row" id="tenure"></div>
+      </div>
+
+      <!-- Bank details -->
+      <div class="section-label">Bank Details</div>
+      <div class="content-card">
+        <div class="content-card-header">
+          <div class="content-card-title">Payout Account</div>
+          <button class="update-btn" title="Coming soon — Phase 3">Update Details</button>
+        </div>
+        <div class="bank-grid" id="bankFields"></div>
+      </div>
+
+    </div>
   </div>
 
-  <!-- Slide-in drawer -->
+  <!-- Drawer -->
   <div class="drawer-overlay" id="drawerOverlay"></div>
   <div class="drawer" id="drawer">
     <div class="drawer-header">
@@ -394,123 +397,113 @@
 
   <script>
     const API_BASE = window.location.hostname === 'localhost' || window.location.protocol === 'file:'
-      ? 'https://affiliates-lac.vercel.app'
-      : '';
+      ? 'https://affiliates-lac.vercel.app' : '';
 
     function fmtINR(n) {
       if (n == null) return '—';
       return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
     }
-
     function fmtDate(iso) {
       if (!iso) return '—';
       return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
     }
-
     function tenure(iso) {
-      if (!iso) return null;
-      const ms    = Date.now() - new Date(iso).getTime();
-      const days  = Math.floor(ms / 86400000);
-      const yrs   = Math.floor(days / 365);
-      const months= Math.floor((days % 365) / 30);
+      if (!iso) return '';
+      const days   = Math.floor((Date.now() - new Date(iso)) / 86400000);
+      const yrs    = Math.floor(days / 365);
+      const months = Math.floor((days % 365) / 30);
       if (yrs > 0) return `${yrs}y ${months}m`;
       if (months > 0) return `${months} months`;
       return `${days} days`;
     }
-
-    // Parse payment_details text blob into structured fields
     function parsePaymentDetails(raw) {
       if (!raw) return {};
-      const result = {};
+      const r = {};
       raw.split('\n').forEach(line => {
-        const [key, ...rest] = line.split(':');
-        if (key && rest.length) result[key.trim()] = rest.join(':').trim();
+        const [k, ...rest] = line.split(/[:\-–]/);
+        if (k && rest.length) r[k.trim()] = rest.join(':').trim();
       });
-      return result;
+      return r;
     }
 
     async function load() {
       const email = new URLSearchParams(window.location.search).get('email');
-      if (!email) { showError('No email provided. <a href="index.html" style="color:#38bdf8">Go back</a>.'); return; }
-
+      if (!email) { showError('No email provided. <a href="index.html" style="color:#2563eb">Go back</a>.'); return; }
       try {
-        const res  = await fetch(`${API_BASE}/api/metrics?email=${encodeURIComponent(email)}`);
-        if (!res.ok) {
-          const b = await res.json().catch(() => ({}));
-          showError(b.error || `Error ${res.status}`);
-          return;
-        }
+        const res = await fetch(`${API_BASE}/api/metrics?email=${encodeURIComponent(email)}`);
+        if (!res.ok) { const b = await res.json().catch(()=>({})); showError(b.error || `Error ${res.status}`); return; }
         render(await res.json());
-      } catch (e) {
-        showError('Could not reach the server. Please try again.');
-      }
+      } catch (e) { showError('Could not reach the server. Please try again.'); }
     }
 
     function render(d) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
+      document.title = `${d.name || 'Dashboard'} — TeleCRM Affiliates`;
 
-      // Avatar
       document.getElementById('avatar').textContent = (d.name || '?')[0].toUpperCase();
-
-      // Profile
       document.getElementById('name').textContent = d.name || d.email;
       document.getElementById('emailPhone').textContent =
         [d.email, d.phone ? `+${d.phone}` : null].filter(Boolean).join(' · ');
 
-      // Badges
-      const badgeData = [
-        d.status       ? { label: d.status,       cls: 'badge-green'  } : null,
-        d.kyc_status   ? { label: d.kyc_status,   cls: d.kyc_status === 'KYC Done' ? 'badge-blue' : 'badge-yellow' } : null,
-        d.affiliate_type ? { label: d.affiliate_type, cls: 'badge-gray' } : null,
+      const badgeMap = [
+        d.status       && { label: d.status,       cls: 'badge-green' },
+        d.kyc_status   && { label: d.kyc_status,   cls: d.kyc_status === 'KYC Done' ? 'badge-blue' : 'badge-amber' },
+        d.affiliate_type && { label: d.affiliate_type, cls: 'badge-gray' },
       ].filter(Boolean);
+      document.getElementById('badges').innerHTML = badgeMap.map(b =>
+        `<span class="badge ${b.cls}">${b.label}</span>`).join('');
 
-      document.getElementById('badges').innerHTML = badgeData
-        .map(b => `<span class="badge ${b.cls}">${b.label}</span>`).join('');
-
-      // Commission stats
+      // Commission
       const c = d.commission || {};
       document.getElementById('commissionStats').innerHTML = [
-        { label: 'Total Earned',   value: fmtINR(c.earned),     sub: 'lifetime',              cls: 'green'  },
-        { label: 'Pending Payout', value: fmtINR(c.pending),    sub: 'awaiting disbursement',  cls: 'yellow' },
-        { label: 'Commission Rate',value: c.percentage != null ? `${c.percentage}%` : '—', sub: d.affiliate_type || '', cls: 'blue' },
+        { label: 'Total Earned',    value: fmtINR(c.earned),   sub: 'lifetime',             cls: 'sc-green' },
+        { label: 'Pending Payout',  value: fmtINR(c.pending),  sub: 'awaiting disbursement', cls: 'sc-amber' },
+        { label: 'Commission Rate', value: c.percentage != null ? `${c.percentage}%` : '—', sub: d.affiliate_type || '', cls: 'sc-blue' },
       ].map(s => `
         <div class="stat-card ${s.cls}">
-          <div class="label">${s.label}</div>
-          <div class="value">${s.value}</div>
-          <div class="sub">${s.sub}</div>
+          <div class="sc-label">${s.label}</div>
+          <div class="sc-value">${s.value}</div>
+          <div class="sc-sub">${s.sub}</div>
         </div>`).join('');
 
-      // Lead funnel
-      const l       = d.leads || {};
-      const total   = l.total || 1;
-      const bd      = l.breakdown || {};
+      // Funnel
+      const l    = d.leads || {};
+      const tot  = l.total || 1;
+      const bd   = l.breakdown || {};
+      const FUNNEL_COLORS = {
+        'Total Assigned':  { bar: '#2563eb', text: '#2563eb' },
+        'Won':             { bar: '#16a34a', text: '#16a34a' },
+        'Payment Pending': { bar: '#d97706', text: '#d97706' },
+        'Lost':            { bar: '#dc2626', text: '#dc2626' },
+        'Open':            { bar: '#94a3b8', text: '#475569' },
+      };
       const rows = [
-        { label: 'Total Assigned',  count: l.total,               status: null,              pct: 100,                                       color: '#38bdf8' },
-        { label: 'Won',             count: bd.Won,                 status: 'Won',             pct: ((bd.Won||0)/total)*100,                   color: '#4ade80' },
-        { label: 'Payment Pending', count: bd['Payment Pending'],  status: 'Payment Pending', pct: ((bd['Payment Pending']||0)/total)*100,    color: '#fbbf24' },
-        { label: 'Lost',            count: bd.Lost,                status: 'Lost',            pct: ((bd.Lost||0)/total)*100,                  color: '#f87171' },
-        { label: 'Open',            count: l.open,                 status: '__open__',        pct: ((l.open||0)/total)*100,                   color: '#94a3b8' },
+        { label: 'Total Assigned',  count: l.total,              status: null,              pct: 100 },
+        { label: 'Won',             count: bd.Won,               status: 'Won',             pct: ((bd.Won||0)/tot)*100 },
+        { label: 'Payment Pending', count: bd['Payment Pending'],status: 'Payment Pending', pct: ((bd['Payment Pending']||0)/tot)*100 },
+        { label: 'Lost',            count: bd.Lost,              status: 'Lost',            pct: ((bd.Lost||0)/tot)*100 },
+        { label: 'Open',            count: l.open,               status: '__open__',        pct: ((l.open||0)/tot)*100 },
       ].filter(r => r.count);
 
-      document.getElementById('funnel').innerHTML = rows.map(r => `
-        <div class="funnel-row" data-status="${r.status ?? ''}" data-label="${r.label}" data-color="${r.color}">
-          <div class="funnel-label">${r.label}</div>
-          <div class="funnel-bar-wrap">
-            <div class="funnel-bar" style="width:${r.pct.toFixed(1)}%;background:${r.color}"></div>
-          </div>
-          <div class="funnel-count" style="color:${r.color}">${r.count ?? '—'} <span style="font-size:11px;color:#475569">›</span></div>
-        </div>`).join('');
+      document.getElementById('funnel').innerHTML = rows.map(r => {
+        const col = FUNNEL_COLORS[r.label] || { bar: '#94a3b8', text: '#475569' };
+        return `
+          <div class="funnel-row" data-status="${r.status??''}" data-label="${r.label}" data-barcolor="${col.bar}" data-textcolor="${col.text}">
+            <div class="funnel-label">${r.label}</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:${r.pct.toFixed(1)}%;background:${col.bar}"></div>
+            </div>
+            <div class="funnel-count" style="color:${col.text}">${r.count ?? '—'}</div>
+            <div class="funnel-arrow">›</div>
+          </div>`;
+      }).join('');
 
-      // Store email + name for drawer API calls (name used as fallback for team member lookup)
       drawerEmail = d.email;
       drawerName  = d.name;
-
-      // Wire up row clicks
       document.querySelectorAll('.funnel-row').forEach(row => {
-        row.addEventListener('click', () => {
-          openDrawer(row.dataset.label, row.dataset.status || null, row.dataset.color);
-        });
+        row.addEventListener('click', () =>
+          openDrawer(row.dataset.label, row.dataset.status || null, row.dataset.barcolor, row.dataset.textcolor));
       });
 
       // Tenure
@@ -527,87 +520,60 @@
         </div>`;
 
       // Bank details
-      const bank    = d.bank || {};
-      const parsed  = parsePaymentDetails(bank.payment_details);
-      const fields  = [
-        { label: 'Account Name',   value: parsed['Name']          || null },
-        { label: 'Bank Name',      value: parsed['Bank']          || null },
-        { label: 'Account Number', value: parsed['Account No']    || null },
-        { label: 'IFSC Code',      value: parsed['IFSC Code']     || bank.ifsc_code || null },
+      const bank   = d.bank || {};
+      const parsed = parsePaymentDetails(bank.payment_details);
+      const bFields = [
+        { label: 'Account Name',   value: parsed['Name'] || parsed['Account holder name'] || null },
+        { label: 'Bank Name',      value: parsed['Bank name'] || parsed['Bank'] || null },
+        { label: 'Account Number', value: parsed['Account no'] || parsed['Account No'] || null },
+        { label: 'IFSC Code',      value: parsed['IFSC'] || parsed['IFSC Code'] || bank.ifsc_code || null },
       ];
-      document.getElementById('bankFields').innerHTML = fields.map(f => `
+      document.getElementById('bankFields').innerHTML = bFields.map(f => `
         <div class="bank-field">
           <div class="bf-label">${f.label}</div>
-          <div class="bf-value ${f.value ? '' : 'empty'}">${f.value || 'Not provided'}</div>
+          <div class="bf-value ${f.value?'':'empty'}">${f.value || 'Not provided'}</div>
         </div>`).join('');
     }
 
     function showError(msg) {
       document.getElementById('loading').style.display = 'none';
       const el = document.getElementById('errState');
-      el.innerHTML = msg;
-      el.style.display = 'block';
+      el.innerHTML = msg; el.style.display = 'block';
     }
 
-    // ── Drawer logic ────────────────────────────────────────────────────────
-    const STATUS_PILL = {
-      'Won':             'pill-won',
-      'Lost':            'pill-lost',
-      'Payment Pending': 'pill-pending',
-    };
+    // ── Drawer ───────────────────────────────────────────────────────────────
+    const STATUS_PILL_CLASS = { 'Won': 'pill-won', 'Lost': 'pill-lost', 'Payment Pending': 'pill-pending' };
+    function pillClass(s) { return STATUS_PILL_CLASS[s] || 'pill-open'; }
 
-    function pillClass(status) {
-      return STATUS_PILL[status] || 'pill-open';
-    }
+    let drawerEmail = null, drawerName = null, drawerSkip = 0, drawerStatus = null, drawerTotal = 0;
 
-    let drawerEmail  = null;
-    let drawerName   = null;
-    let drawerSkip   = 0;
-    let drawerStatus = null;
-    let drawerTotal  = 0;
-
-    function openDrawer(label, status, color) {
+    function openDrawer(label, status, barColor, textColor) {
       drawerStatus = (status === '__open__') ? null : status;
-      drawerSkip   = 0;
-      drawerTotal  = 0;
-
-      document.getElementById('drawerTitle').textContent = label;
-      document.getElementById('drawerSub').textContent   = '';
-      document.getElementById('drawerBody').innerHTML    = `<div class="drawer-loading"><div class="drawer-spinner"></div>Loading…</div>`;
-      document.getElementById('drawerTitle').style.color = color;
+      drawerSkip   = 0; drawerTotal = 0;
+      document.getElementById('drawerTitle').textContent  = label;
+      document.getElementById('drawerTitle').style.color  = textColor || '#0f172a';
+      document.getElementById('drawerSub').textContent    = '';
+      document.getElementById('drawerBody').innerHTML     = `<div class="drawer-loading"><div class="drawer-spinner"></div>Loading…</div>`;
       document.getElementById('drawer').classList.add('open');
       document.getElementById('drawerOverlay').classList.add('open');
-
-      // For "Open" we need all leads MINUS closed statuses — handled server-side via null status
-      // For "Total Assigned" status is null too, same endpoint
       fetchLeads(true);
     }
-
     function closeDrawer() {
       document.getElementById('drawer').classList.remove('open');
       document.getElementById('drawerOverlay').classList.remove('open');
     }
-
     async function fetchLeads(fresh = false) {
       if (fresh) drawerSkip = 0;
-
-      // For "Open": fetch all leads, backend returns all statuses for assignee.
-      // We'll filter out closed ones client-side when status === '__open__' was chosen.
-      // (drawerStatus is already null for both Total and Open — that's fine for display)
       const qs = new URLSearchParams({ email: drawerEmail, name: drawerName, skip: drawerSkip, limit: 50 });
       if (drawerStatus) qs.set('status', drawerStatus);
-
       const res  = await fetch(`${API_BASE}/api/leads?${qs}`);
       const data = await res.json();
-
       if (!res.ok) {
-        document.getElementById('drawerBody').innerHTML = `<div class="drawer-loading" style="color:#f87171">${data.error || 'Failed to load'}</div>`;
+        document.getElementById('drawerBody').innerHTML = `<div class="drawer-loading" style="color:#dc2626">${data.error||'Failed to load'}</div>`;
         return;
       }
-
       drawerTotal = data.total_count;
       document.getElementById('drawerSub').textContent = `${drawerTotal} lead${drawerTotal !== 1 ? 's' : ''}`;
-
       const items = data.leads.map(l => `
         <div class="lead-item">
           <div>
@@ -616,28 +582,20 @@
           </div>
           <span class="status-pill ${pillClass(l.status)}">${l.status || 'Unknown'}</span>
         </div>`).join('');
-
       if (fresh) {
         document.getElementById('drawerBody').innerHTML = items || `<div class="drawer-loading">No leads found.</div>`;
       } else {
-        // Remove existing load-more button then append
-        const btn = document.getElementById('loadMoreBtn');
-        if (btn) btn.remove();
+        document.getElementById('loadMoreBtn')?.remove();
         document.getElementById('drawerBody').insertAdjacentHTML('beforeend', items);
       }
-
       drawerSkip += data.leads.length;
-      const loaded = drawerSkip;
-
-      if (loaded < drawerTotal) {
+      if (drawerSkip < drawerTotal) {
         document.getElementById('drawerBody').insertAdjacentHTML('beforeend',
           `<button class="drawer-load-more" id="loadMoreBtn" onclick="fetchLeads(false)">
-            Load more (${drawerTotal - loaded} remaining)
-          </button>`
-        );
+            Load more (${drawerTotal - drawerSkip} remaining)
+          </button>`);
       }
     }
-
     document.getElementById('drawerClose').addEventListener('click', closeDrawer);
     document.getElementById('drawerOverlay').addEventListener('click', closeDrawer);
 
