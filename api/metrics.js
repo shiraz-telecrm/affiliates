@@ -30,24 +30,40 @@ async function countLeads(token, enterpriseId, assigneeEmail, status = null) {
 }
 
 // Find a team member's login email in the master workspace by matching their name.
-// Paginates through up to 5 pages (50 members) and returns the first name match.
+// Fetches first page to get total_count, then searches all pages in parallel batches.
 async function findMasterEmail(name) {
   if (!name) return null;
   const nameLower = name.toLowerCase().trim();
-  for (let skip = 0; skip < 50; skip += 10) {
-    const r = await tcrm(MASTER_TOKEN,
-      `/enterprise/${MASTER_ID}/team-members?limit=10&skip=${skip}`
-    );
-    if (r.status !== 200) break;
-    const members = r.body?.data || [];
-    const match = members.find(m =>
-      (m.name || '').toLowerCase().includes(nameLower) ||
-      nameLower.includes((m.name || '').toLowerCase())
-    );
-    if (match?.email) return match.email;
-    if (members.length < 10) break; // last page
+
+  // Page 1 — also gives us total_count
+  const first = await tcrm(MASTER_TOKEN, `/enterprise/${MASTER_ID}/team-members?limit=10&skip=0`);
+  if (first.status !== 200) return null;
+
+  const totalCount = first.body?.total_count || 0;
+  const allPages   = [first.body?.data || []];
+
+  // Fetch remaining pages in parallel (max 10 at a time to avoid rate limits)
+  const remaining = Math.ceil((totalCount - 10) / 10);
+  if (remaining > 0) {
+    const skips   = Array.from({ length: remaining }, (_, i) => (i + 1) * 10);
+    const batches = [];
+    for (let i = 0; i < skips.length; i += 10) {
+      const batch = await Promise.all(
+        skips.slice(i, i + 10).map(skip =>
+          tcrm(MASTER_TOKEN, `/enterprise/${MASTER_ID}/team-members?limit=10&skip=${skip}`)
+        )
+      );
+      batches.push(...batch.map(r => r.body?.data || []));
+    }
+    allPages.push(...batches);
   }
-  return null;
+
+  const allMembers = allPages.flat();
+  const match = allMembers.find(m => {
+    const mName = (m.name || '').toLowerCase();
+    return mName === nameLower || mName.includes(nameLower) || nameLower.includes(mName);
+  });
+  return match?.email || null;
 }
 
 module.exports = async function handler(req, res) {
@@ -91,19 +107,24 @@ module.exports = async function handler(req, res) {
     const toISO = (ts) => ts ? new Date(Number(ts)).toISOString() : null;
 
     // ── Step 3: resolve assignee email for master workspace ──────────────────
-    // Some affiliates have a different login email in the master workspace.
-    // Try their partnership email first; if 0 results, look up by name.
+    // Some affiliates log in to the master workspace with a different email.
+    // Try their partnership email first; if 0 results, look up by name across
+    // all team members and retry with the found email.
     let assigneeEmail = email;
-    const quickCheck  = await countLeads(MASTER_TOKEN, MASTER_ID, email);
-    if (!quickCheck) {
+    let cachedTotal   = await countLeads(MASTER_TOKEN, MASTER_ID, email);
+
+    if (!cachedTotal) {
       const foundEmail = await findMasterEmail(f.name);
-      if (foundEmail) assigneeEmail = foundEmail;
+      if (foundEmail && foundEmail.toLowerCase() !== email) {
+        assigneeEmail = foundEmail;
+        cachedTotal   = null; // force re-query with correct email
+      }
     }
 
     // ── Step 4: lead counts from master affiliate workspace ──────────────────
     const [totalCount, ...closedCounts] = await Promise.all([
-      quickCheck !== null ? Promise.resolve(quickCheck)
-                          : countLeads(MASTER_TOKEN, MASTER_ID, assigneeEmail),
+      cachedTotal !== null ? Promise.resolve(cachedTotal)
+                           : countLeads(MASTER_TOKEN, MASTER_ID, assigneeEmail),
       ...CLOSED_STATUSES.map(s => countLeads(MASTER_TOKEN, MASTER_ID, assigneeEmail, s)),
     ]);
 

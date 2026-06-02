@@ -1,6 +1,5 @@
-// GET /api/leads?email=x&status=Won&skip=0&limit=50
-// Returns leads assigned to this affiliate in the master workspace,
-// optionally filtered by status.
+// GET /api/leads?email=x&name=Harika&status=Won&skip=0&limit=50
+// Returns leads assigned to this affiliate in the master workspace.
 
 const MASTER_ID    = process.env.TELECRM_ENTERPRISE_ID;
 const MASTER_TOKEN = process.env.TELECRM_SYNC_TOKEN;
@@ -17,6 +16,37 @@ async function tcrm(path, method = 'GET', body = null) {
   return { status: res.status, body: json };
 }
 
+// Fetch ALL team members and find by name match (searches full list in parallel batches)
+async function findMasterEmail(name) {
+  if (!name) return null;
+  const nameLower = name.toLowerCase().trim();
+
+  const first = await tcrm(`/enterprise/${MASTER_ID}/team-members?limit=10&skip=0`);
+  if (first.status !== 200) return null;
+
+  const totalCount = first.body?.total_count || 0;
+  const allPages   = [first.body?.data || []];
+
+  const remaining = Math.ceil((totalCount - 10) / 10);
+  if (remaining > 0) {
+    const skips = Array.from({ length: remaining }, (_, i) => (i + 1) * 10);
+    for (let i = 0; i < skips.length; i += 10) {
+      const batch = await Promise.all(
+        skips.slice(i, i + 10).map(skip =>
+          tcrm(`/enterprise/${MASTER_ID}/team-members?limit=10&skip=${skip}`)
+        )
+      );
+      allPages.push(...batch.map(r => r.body?.data || []));
+    }
+  }
+
+  const match = allPages.flat().find(m => {
+    const mName = (m.name || '').toLowerCase();
+    return mName === nameLower || mName.includes(nameLower) || nameLower.includes(mName);
+  });
+  return match?.email || null;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -26,46 +56,37 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'GET')     return res.status(405).json({ error: 'Method not allowed' });
 
   const email  = (req.query.email  || '').toLowerCase().trim();
-  const status =  req.query.status || null;   // optional filter
+  const name   =  req.query.name   || '';
+  const status =  req.query.status || null;
   const skip   = parseInt(req.query.skip,  10) || 0;
   const limit  = Math.min(parseInt(req.query.limit, 10) || 50, 100);
 
-  if (!email) return res.status(400).json({ error: 'email parameter required' });
+  if (!email)  return res.status(400).json({ error: 'email parameter required' });
   if (!MASTER_ID || !MASTER_TOKEN) return res.status(500).json({ error: 'Server not configured' });
 
-  // If no leads found by email, try looking up team member by name in master workspace
+  // Resolve correct assignee email in master workspace
   let assigneeEmail = email;
-  const quickCheck = await tcrm(
-    `/enterprise/${MASTER_ID}/lead/search?limit=1`,
-    'POST',
+  const check = await tcrm(
+    `/enterprise/${MASTER_ID}/lead/search?limit=1`, 'POST',
     { fields: { assignee: email } }
   );
-  if (quickCheck.status === 200 && quickCheck.body?.total_count === 0) {
-    // Try finding by name via team members list (up to 50 members)
-    const name = req.query.name || '';
-    if (name) {
-      const nameLower = name.toLowerCase().trim();
-      for (let s = 0; s < 50; s += 10) {
-        const tm = await tcrm(`/enterprise/${MASTER_ID}/team-members?limit=10&skip=${s}`);
-        if (tm.status !== 200) break;
-        const members = tm.body?.data || [];
-        const match = members.find(m =>
-          (m.name || '').toLowerCase().includes(nameLower) ||
-          nameLower.includes((m.name || '').toLowerCase())
-        );
-        if (match?.email) { assigneeEmail = match.email; break; }
-        if (members.length < 10) break;
-      }
-    }
+
+  if (check.status === 200 && !check.body?.total_count && name) {
+    const found = await findMasterEmail(name);
+    if (found && found.toLowerCase() !== email) assigneeEmail = found;
   }
 
   const fields = { assignee: assigneeEmail };
-  if (status) fields.status = status;
+  if (status && status !== '__open__') fields.status = status;
+
+  // For "open" filter: exclude all closed statuses
+  const CLOSED = ['Won', 'Lost', 'Closed', 'Payment Done', 'Payment Pending'];
+  // Note: TeleCRM doesn't support "not in" filters, so open = total minus closed
+  // We fetch all and let the UI handle "open" display; status=null means all
 
   const result = await tcrm(
     `/enterprise/${MASTER_ID}/lead/search?skip=${skip}&limit=${limit}`,
-    'POST',
-    { fields }
+    'POST', { fields }
   );
 
   if (result.status !== 200) {
@@ -79,7 +100,7 @@ module.exports = async function handler(req, res) {
       name:   f.name   || '(No name)',
       email:  f.email  || null,
       phone:  f.phone  || null,
-      status: f.status || null,
+      status: f.status || lead.status || null,
     };
   });
 
@@ -88,5 +109,6 @@ module.exports = async function handler(req, res) {
     total_count: result.body.total_count ?? leads.length,
     skip:        result.body.skip        ?? skip,
     limit:       result.body.limit       ?? limit,
+    assignee_resolved: assigneeEmail,
   });
 };
