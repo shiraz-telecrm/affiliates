@@ -42,6 +42,56 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ status: r.status, total_count: r.body?.total_count, returned: (r.body?.data || []).length });
     }
 
+    if (mode === 'allwon') {
+      // Fetch all Won + Payment Pending leads (no assignee filter), paginated.
+      const statuses = ['Won', 'Payment Pending'];
+      let all = [];
+      for (const status of statuses) {
+        const first = await searchLeads(MASTER_TOKEN, MASTER_ID, { status }, 0, 100);
+        const total = first.body?.total_count || 0;
+        let data = first.body?.data || [];
+        if (total > 100) {
+          const more = await searchLeads(MASTER_TOKEN, MASTER_ID, { status }, 100, 100);
+          data = data.concat(more.body?.data || []);
+        }
+        all = all.concat(data.map(l => ({ id: l._id || l.id, fields: l.fields, status })));
+      }
+
+      const summary = {
+        total: all.length,
+        with_employeeid: all.filter(l => l.fields?.employeeid).length,
+        with_leadMetaData: all.filter(l => l.fields?.leadMetaData?.statusChangeTimestamp).length,
+        with_total_amount: all.filter(l => l.fields?.total_amount != null).length,
+        with_number_of_license: all.filter(l => l.fields?.number_of_license != null).length,
+      };
+
+      // Month distribution by leadMetaData.statusChangeTimestamp (fallback modified_on)
+      const months = {};
+      all.forEach(l => {
+        const ts = l.fields?.leadMetaData?.statusChangeTimestamp || l.fields?.modified_on;
+        if (!ts) return;
+        const month = new Date(ts).toISOString().slice(0, 7);
+        months[month] = (months[month] || 0) + 1;
+      });
+
+      // Sample of May leads with employeeid
+      const mayLeads = all.filter(l => {
+        const ts = l.fields?.leadMetaData?.statusChangeTimestamp || l.fields?.modified_on;
+        return ts && new Date(ts).toISOString().slice(0, 7) === '2026-05';
+      }).map(l => ({
+        id: l.id,
+        name: l.fields?.name,
+        employeeid: l.fields?.employeeid,
+        total_amount: l.fields?.total_amount,
+        number_of_license: l.fields?.number_of_license,
+        status: l.status,
+        statusChangeTimestamp: l.fields?.leadMetaData?.statusChangeTimestamp,
+        modified_on: l.fields?.modified_on,
+      }));
+
+      return res.status(200).json({ summary, months, mayLeads });
+    }
+
     return res.status(400).json({ error: 'unknown mode' });
   } catch (err) {
     console.error('[debug-admin] error:', err);
