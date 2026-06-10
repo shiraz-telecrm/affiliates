@@ -477,14 +477,32 @@
       if (months > 0) return `${months} months`;
       return `${days} days`;
     }
+    // Parses free-text bank details, e.g.
+    //   "Account Holder: PINTU MANDAL\nAccount Number: ...\nIFSC: ...\nBranch: ...\nAccount Type: ..."
+    //   "Bank name -  ICICI bank\nAccount no –  ...\nAccount holder name - ...\nIFSC -  ..."
+    //   "Name: Grow Medico\nIFSC Code: ...\nAccount No: ...\nBank: ..."
+    // Different affiliates use different labels/separators, so keys are
+    // normalised to lowercase and looked up via aliases (see pick()).
     function parsePaymentDetails(raw) {
       if (!raw) return {};
       const r = {};
       raw.split('\n').forEach(line => {
-        const [k, ...rest] = line.split(/[:\-–]/);
-        if (k && rest.length) r[k.trim()] = rest.join(':').trim();
+        const idx = line.search(/[:\-–]/);
+        if (idx === -1) return;
+        const k = line.slice(0, idx).trim();
+        const v = line.slice(idx + 1).trim();
+        if (k && v) r[k.toLowerCase()] = v;
       });
       return r;
+    }
+    // Looks up the first matching alias (case-insensitive) in a parsed
+    // payment-details map, returning null if none are present.
+    function pick(parsed, ...keys) {
+      for (const k of keys) {
+        const v = parsed[k.toLowerCase()];
+        if (v) return v;
+      }
+      return null;
     }
 
     async function load() {
@@ -587,10 +605,12 @@
       const bank   = d.bank || {};
       const parsed = parsePaymentDetails(bank.payment_details);
       const bFields = [
-        { label: 'Account Name',   value: parsed['Name'] || parsed['Account holder name'] || null },
-        { label: 'Bank Name',      value: parsed['Bank name'] || parsed['Bank'] || null },
-        { label: 'Account Number', value: parsed['Account no'] || parsed['Account No'] || null },
-        { label: 'IFSC Code',      value: parsed['IFSC'] || parsed['IFSC Code'] || bank.ifsc_code || null },
+        { label: 'Account Name',   value: pick(parsed, 'Account Holder', 'Account holder name', 'Account Name', 'Name') },
+        { label: 'Bank Name',      value: pick(parsed, 'Bank Name', 'Bank') },
+        { label: 'Account Number', value: pick(parsed, 'Account Number', 'Account No', 'Account no') },
+        { label: 'IFSC Code',      value: pick(parsed, 'IFSC', 'IFSC Code') || bank.ifsc_code || null },
+        { label: 'Branch',         value: pick(parsed, 'Branch', 'Branch Name') },
+        { label: 'Account Type',   value: pick(parsed, 'Account Type', 'Type') },
       ];
       document.getElementById('bankFields').innerHTML = bFields.map(f => `
         <div class="bank-field">
