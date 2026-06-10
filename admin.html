@@ -160,6 +160,24 @@
     .affiliate-email { font-size: 11px; color: #94a3b8; margin-top: 2px; }
     .commission-cell { color: #16a34a; font-weight: 600; }
 
+    .aff-link {
+      margin-left: auto;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #2563eb;
+      text-decoration: none;
+      padding: 4px 10px;
+      border: 1px solid #dbeafe;
+      border-radius: 8px;
+      background: #eff6ff;
+      white-space: nowrap;
+    }
+    .aff-link:hover { background: #dbeafe; }
+
     /* ── Affiliate breakdown (expand row) ── */
     table.report tbody tr.aff-row { cursor: pointer; }
     .aff-name-wrap { display: flex; align-items: center; gap: 10px; }
@@ -371,6 +389,10 @@
                 <div class="affiliate-name">${a.affiliate_name}</div>
                 <div class="affiliate-email">${a.affiliate_email}</div>
               </div>
+              <a class="aff-link" href="metrics.html?email=${encodeURIComponent(a.affiliate_email)}"
+                 target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Open affiliate dashboard">
+                Profile ↗
+              </a>
             </div>
           </td>
           <td class="num">${a.leads_won}</td>
