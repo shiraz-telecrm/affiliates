@@ -202,20 +202,36 @@
     }
 
     /* ── Monthly commission table ── */
+    .comm-row-wrap { border-bottom: 1px solid #f8fafc; }
+    .comm-row-wrap:last-child { border-bottom: none; }
     .comm-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 13px 22px;
-      border-bottom: 1px solid #f8fafc;
       font-size: 13px;
+      cursor: pointer;
     }
-    .comm-row:last-child { border-bottom: none; }
-    .comm-row.total { background: #f8fafc; font-weight: 700; }
+    .comm-row:hover { background: #f8fafc; }
+    .comm-row.total { background: #f8fafc; font-weight: 700; cursor: default; border-top: 1px solid #e2e8f0; }
+    .comm-left { display: flex; align-items: center; gap: 10px; }
+    .comm-chevron {
+      flex-shrink: 0;
+      width: 14px;
+      font-size: 12px;
+      color: #cbd5e1;
+      transition: transform 0.15s ease;
+    }
+    .comm-row-wrap.expanded .comm-chevron { transform: rotate(90deg); color: #2563eb; }
     .comm-month  { color: #374151; }
     .comm-amount { font-weight: 700; color: #16a34a; }
     .comm-row.total .comm-amount { color: #0f172a; }
     .comm-empty { padding: 24px 22px; text-align: center; color: #94a3b8; font-size: 13px; }
+
+    /* ── Commission breakup (expand panel) ── */
+    .comm-expand { display: none; padding: 2px 22px 16px 46px; background: #f8fafc; }
+    .comm-row-wrap.expanded .comm-expand { display: block; }
+    .comm-bd-sum { font-size: 11px; color: #94a3b8; text-align: right; margin-top: 8px; }
 
     /* ── Drawer ── */
     .drawer-overlay {
@@ -711,6 +727,9 @@
       const [y, m] = ym.split('-').map(Number);
       return new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
     }
+
+    let commissionData = null; // cached /api/commission response, used for the breakup expand
+
     async function loadCommission(email, name) {
       const el = document.getElementById('commissionTable');
       try {
@@ -725,10 +744,17 @@
           el.innerHTML = `<div class="comm-empty">No commission recorded yet.</div>`;
           return;
         }
+        commissionData = data;
         const rows = data.monthly.map(m => `
-          <div class="comm-row">
-            <div class="comm-month">${fmtMonth(m.month)}</div>
-            <div class="comm-amount">${fmtINR(m.total_commission)}</div>
+          <div class="comm-row-wrap" data-month="${m.month}">
+            <div class="comm-row" onclick="toggleCommMonth('${m.month}')">
+              <div class="comm-left">
+                <span class="comm-chevron">&#8250;</span>
+                <div class="comm-month">${fmtMonth(m.month)}</div>
+              </div>
+              <div class="comm-amount">${fmtINR(m.total_commission)}</div>
+            </div>
+            <div class="comm-expand" id="comm-expand-${m.month}"></div>
           </div>`).join('');
         const total = `
           <div class="comm-row total">
@@ -739,6 +765,41 @@
       } catch (e) {
         el.innerHTML = `<div class="comm-empty">Could not load commission data.</div>`;
       }
+    }
+
+    // Expands a month row to show every payment that contributed to that
+    // month's commission total — which lead, when, the order amount/licenses,
+    // the commission %, and the resulting commission amount.
+    function toggleCommMonth(month) {
+      const wrap   = document.querySelector(`.comm-row-wrap[data-month="${month}"]`);
+      const expand = document.getElementById(`comm-expand-${month}`);
+      if (!wrap || !expand) return;
+
+      if (wrap.classList.contains('expanded')) {
+        wrap.classList.remove('expanded');
+        return;
+      }
+      wrap.classList.add('expanded');
+      if (expand.dataset.loaded) return;
+      expand.dataset.loaded = '1';
+
+      let html = '';
+      let sum = 0, count = 0;
+      (commissionData?.leads || []).forEach(l => {
+        const monthPayments = (l.payments || []).filter(p =>
+          p.commission_amount != null && (p.date || '').slice(0, 7) === month);
+        if (!monthPayments.length) return;
+        html += renderPayments(monthPayments, l.name || '(Unnamed lead)');
+        monthPayments.forEach(p => { sum += p.commission_amount; count++; });
+      });
+
+      if (!html) {
+        expand.innerHTML = `<div class="payment-empty">No breakdown available for this month.</div>`;
+        return;
+      }
+
+      expand.innerHTML = html +
+        `<div class="comm-bd-sum">${count} payment${count === 1 ? '' : 's'} · Sum = ${fmtINR(Math.round(sum * 100) / 100)}</div>`;
     }
 
     // ── Drawer ───────────────────────────────────────────────────────────────
@@ -792,11 +853,11 @@
       }
     }
 
-    function renderPayments(payments) {
+    function renderPayments(payments, leadName) {
       if (!payments.length) return `<div class="payment-empty">No payment details recorded for this lead yet.</div>`;
       return payments.map(p => `
         <div class="payment-card">
-          <div class="payment-date">${fmtDate(p.date)}</div>
+          <div class="payment-date">${leadName ? `${leadName} · ` : ''}${fmtDate(p.date)}</div>
           <div class="payment-grid">
             ${p.amount            != null ? `<div><span class="pg-label">Amount</span><span class="pg-value">${fmtINR(p.amount)}</span></div>` : ''}
             ${p.licenses          != null ? `<div><span class="pg-label">Licenses</span><span class="pg-value">${p.licenses}</span></div>` : ''}
