@@ -50,13 +50,19 @@ function describe(a) {
 }
 
 // ── Extract date from action ─────────────────────────────────────────────────
+// TeleCRM actions carry their timestamp as `creationTimestamp` (Unix ms) —
+// not `performed_at`/`created_at`/etc as originally assumed. Convert to ISO
+// so the frontend can format consistently.
 function getDate(a) {
-  return a.performed_at
+  const raw = a.performed_at
     || a.created_at
     || a.createdAt
+    || a.creationTimestamp
     || a.timestamp
     || a.date
     || null;
+  if (!raw) return null;
+  return /^\d+$/.test(String(raw)) ? new Date(Number(raw)).toISOString() : raw;
 }
 
 // ── Main handler ────────────────────────────────────────────────────────────

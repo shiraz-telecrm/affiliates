@@ -1,51 +1,7 @@
 // GET /api/leads?email=x&name=Harika&status=Won&skip=0&limit=50
 // Returns leads assigned to this affiliate in the master workspace.
 
-const MASTER_ID    = process.env.TELECRM_ENTERPRISE_ID;
-const MASTER_TOKEN = process.env.TELECRM_SYNC_TOKEN;
-const BASE         = 'https://next.telecrm.in/autoupdate/v2';
-
-async function tcrm(path, method = 'GET', body = null) {
-  const opts = {
-    method,
-    headers: { Authorization: `Bearer ${MASTER_TOKEN}`, 'Content-Type': 'application/json' },
-  };
-  if (body) opts.body = JSON.stringify(body);
-  const res  = await fetch(`${BASE}${path}`, opts);
-  const json = await res.json().catch(() => ({}));
-  return { status: res.status, body: json };
-}
-
-// Fetch ALL team members and find by name match (searches full list in parallel batches)
-async function findMasterEmail(name) {
-  if (!name) return null;
-  const nameLower = name.toLowerCase().trim();
-
-  const first = await tcrm(`/enterprise/${MASTER_ID}/team-members?limit=10&skip=0`);
-  if (first.status !== 200) return null;
-
-  const totalCount = first.body?.total_count || 0;
-  const allPages   = [first.body?.data || []];
-
-  const remaining = Math.ceil((totalCount - 10) / 10);
-  if (remaining > 0) {
-    const skips = Array.from({ length: remaining }, (_, i) => (i + 1) * 10);
-    for (let i = 0; i < skips.length; i += 10) {
-      const batch = await Promise.all(
-        skips.slice(i, i + 10).map(skip =>
-          tcrm(`/enterprise/${MASTER_ID}/team-members?limit=10&skip=${skip}`)
-        )
-      );
-      allPages.push(...batch.map(r => r.body?.data || []));
-    }
-  }
-
-  const match = allPages.flat().find(m => {
-    const mName = (m.name || '').toLowerCase();
-    return mName === nameLower || mName.includes(nameLower) || nameLower.includes(mName);
-  });
-  return match?.email || null;
-}
+const { MASTER_ID, MASTER_TOKEN, tcrm, findMasterEmail } = require('./_lib/telecrm');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -66,7 +22,7 @@ module.exports = async function handler(req, res) {
 
   // Resolve correct assignee email in master workspace
   let assigneeEmail = email;
-  const check = await tcrm(
+  const check = await tcrm(MASTER_TOKEN,
     `/enterprise/${MASTER_ID}/lead/search?limit=1`, 'POST',
     { fields: { assignee: email } }
   );
@@ -77,14 +33,12 @@ module.exports = async function handler(req, res) {
   }
 
   const fields = { assignee: assigneeEmail };
+  // Note: status=__open__ ("Open" funnel row) can't be expressed as a single
+  // TeleCRM filter — there's no "not in" operator. Pass through as no status
+  // filter for now (returns all leads); see ROADMAP for a proper fix.
   if (status && status !== '__open__') fields.status = status;
 
-  // For "open" filter: exclude all closed statuses
-  const CLOSED = ['Won', 'Lost', 'Closed', 'Payment Done', 'Payment Pending'];
-  // Note: TeleCRM doesn't support "not in" filters, so open = total minus closed
-  // We fetch all and let the UI handle "open" display; status=null means all
-
-  const result = await tcrm(
+  const result = await tcrm(MASTER_TOKEN,
     `/enterprise/${MASTER_ID}/lead/search?skip=${skip}&limit=${limit}`,
     'POST', { fields }
   );

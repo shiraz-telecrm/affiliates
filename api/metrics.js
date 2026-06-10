@@ -1,70 +1,7 @@
-const MASTER_ID     = process.env.TELECRM_ENTERPRISE_ID;
-const MASTER_TOKEN  = process.env.TELECRM_SYNC_TOKEN;
-const PARTNER_ID    = process.env.TELECRM_PARTNERSHIP_ENTERPRISE_ID;
-const PARTNER_TOKEN = process.env.TELECRM_PARTNERSHIP_SYNC_TOKEN;
-const BASE          = 'https://next.telecrm.in/autoupdate/v2';
-
-const CLOSED_STATUSES = ['Won', 'Lost', 'Closed', 'Payment Done', 'Payment Pending'];
-
-async function tcrm(token, path, method = 'GET', body = null) {
-  const opts = {
-    method,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  };
-  if (body) opts.body = JSON.stringify(body);
-  const res  = await fetch(`${BASE}${path}`, opts);
-  const json = await res.json().catch(() => ({}));
-  return { status: res.status, body: json };
-}
-
-async function countLeads(token, enterpriseId, assigneeEmail, status = null) {
-  const fields = { assignee: assigneeEmail };
-  if (status) fields.status = status;
-  const r = await tcrm(token,
-    `/enterprise/${enterpriseId}/lead/search?limit=1`,
-    'POST',
-    { fields }
-  );
-  if (r.status !== 200) return null;
-  return r.body?.total_count ?? null;
-}
-
-// Find a team member's login email in the master workspace by matching their name.
-// Fetches first page to get total_count, then searches all pages in parallel batches.
-async function findMasterEmail(name) {
-  if (!name) return null;
-  const nameLower = name.toLowerCase().trim();
-
-  // Page 1 — also gives us total_count
-  const first = await tcrm(MASTER_TOKEN, `/enterprise/${MASTER_ID}/team-members?limit=10&skip=0`);
-  if (first.status !== 200) return null;
-
-  const totalCount = first.body?.total_count || 0;
-  const allPages   = [first.body?.data || []];
-
-  // Fetch remaining pages in parallel (max 10 at a time to avoid rate limits)
-  const remaining = Math.ceil((totalCount - 10) / 10);
-  if (remaining > 0) {
-    const skips   = Array.from({ length: remaining }, (_, i) => (i + 1) * 10);
-    const batches = [];
-    for (let i = 0; i < skips.length; i += 10) {
-      const batch = await Promise.all(
-        skips.slice(i, i + 10).map(skip =>
-          tcrm(MASTER_TOKEN, `/enterprise/${MASTER_ID}/team-members?limit=10&skip=${skip}`)
-        )
-      );
-      batches.push(...batch.map(r => r.body?.data || []));
-    }
-    allPages.push(...batches);
-  }
-
-  const allMembers = allPages.flat();
-  const match = allMembers.find(m => {
-    const mName = (m.name || '').toLowerCase();
-    return mName === nameLower || mName.includes(nameLower) || nameLower.includes(mName);
-  });
-  return match?.email || null;
-}
+const {
+  MASTER_ID, MASTER_TOKEN, PARTNER_ID, PARTNER_TOKEN,
+  CLOSED_STATUSES, tcrm, countLeads, findMasterEmail,
+} = require('./_lib/telecrm');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

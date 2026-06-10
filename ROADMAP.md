@@ -22,13 +22,21 @@ lookup. This is fragile — two people with the same first name will break it.
 - Populate it for all existing affiliates
 - `api/metrics.js` to read `f.telecrm_master_email` before falling back to name lookup
 
+**Status:** Still open. `f6f29f7` expanded `findMasterEmail()` to search all 217
+team members and fixed a re-query bug, but
+`https://affiliates-lac.vercel.app/metrics.html?email=harika.govathati123@gmail.com`
+still returns `leads.total: 0` — the name-match fallback isn't finding her
+master-workspace assignee record. `api/debug-team.js` (temp endpoint) is kept
+around until this is debugged further; see HANDOFF.md §6.
+
 ---
 
 ### 2. Closed status list is hardcoded
 **Priority:** High · **Effort:** Low
 
 `CLOSED_STATUSES = ['Won', 'Lost', 'Closed', 'Payment Done', 'Payment Pending']`
-is hardcoded in `api/metrics.js` and `api/leads.js`.
+is hardcoded — now centralized in `api/_lib/telecrm.js` (shared by metrics.js,
+leads.js, commission.js) instead of duplicated, but still a hardcoded list.
 
 **Fix:** Fetch lead stage pipeline from TeleCRM Enterprise Metadata API
 (`GET /enterprise/{id}/metadata`) and derive closed statuses dynamically,
@@ -109,23 +117,44 @@ Clicking a lead name in the drawer should open its full activity timeline
 ### 9. `activity.html` — fix action timestamps
 **Priority:** Medium · **Effort:** Medium
 
-TeleCRM's `includeActions=true` response doesn't return timestamps on action items.
-All dates show `null` in the timeline.
+~~TeleCRM's `includeActions=true` response doesn't return timestamps on action items.~~
 
-**Fix:** Use `POST /lead/{id}/action/search` instead of `includeActions=true`.
-The action search endpoint returns richer data including `performed_at`.
+**Resolved (root cause):** the timestamp field is `creationTimestamp` (Unix ms),
+not `performed_at`/`created_at`/etc. `api/activity.js`'s `getDate()` now reads
+`creationTimestamp` and converts to ISO. **Remaining:** `activity.html` itself
+still has the old dark theme and was not part of the light-theme redesign —
+that part of this item is still open.
 
 ---
 
-### 10. Commission breakdown by lead
+### 10. Commission breakdown by lead — ✅ Done (v1)
 **Priority:** Medium · **Effort:** Medium
 
-Show which specific leads generated commission, not just the aggregate total.
+Implemented via:
+- `api/_lib/telecrm.js#extractPayments()` — parses a lead's action history for
+  custom "order" actions (`sop_amount`, `number_of_license`, `discount_given`)
+  and "commission" actions (`commission_amount`, `total_amount_paid`, `notes`
+  as the commission %), matched by **field shape** (not action `type` code,
+  which varies — e.g. `ACTION_1001`/`ACTION_1004`/`ACTION_1005`), and
+  de-duplicated by keeping the latest action per distinct amount (TeleCRM
+  automations sometimes log a corrected "v2" a few seconds after the original).
+- `GET /api/lead-detail?id=<leadId>` — returns `{id, name, status, payments}`
+  for a single lead. Powers the chevron expand row in the funnel drawer
+  (`metrics.html`), lazily fetched on first expand and cached client-side.
+- `GET /api/commission?email=&name=` — scans all `Won` / `Payment Done` /
+  `Payment Pending` leads for the resolved assignee, extracts payments from
+  each, and aggregates `commission_amount` by month. Powers the new
+  "Monthly Commission" card on `metrics.html`.
 
-**Plan:**
-- Fetch `Won` leads for the assignee
-- For each lead, show deal value × commission percentage
-- Add a "Commission breakdown" tab in `metrics.html`
+**Follow-ups:**
+- `extractPayments()` field-name heuristics were validated against 2 leads
+  (`info@digibrat.in`'s "NS sheshegowda" and "Amruith"). Watch for other
+  custom action shapes as more affiliates/leads are checked.
+- `/api/commission` does an N+1 lead-detail fetch (one per Won/Payment
+  lead) — fine for small affiliates, but combine with ROADMAP #12
+  (caching) once affiliates with many closed leads are tested.
+- No ownership check yet on `/api/lead-detail` or `/api/commission` — any
+  lead `id` can be queried by anyone. Tie down once Phase 3 auth (#5) lands.
 
 ---
 
@@ -181,5 +210,13 @@ this becomes a problem at scale.
 - [x] Dual-workspace metrics endpoint (`/api/metrics`)
 - [x] Lead list drawer with status filter (`/api/leads`)
 - [x] Bank details in metrics response
-- [x] Name-based team member email fallback (Harika fix)
+- [x] Name-based team member email fallback (Harika fix) — **partially: still
+      returns 0 leads for Harika specifically, see item #1**
 - [x] Remove sensitive fields (IFSC, bank account) from public response — **reversed: added back at owner's request for payout display**
+- [x] Shared TeleCRM helpers extracted to `api/_lib/telecrm.js`
+      (`tcrm`, `searchLeads`, `countLeads`, `getLeadDetail`, `findMasterEmail`,
+      `extractPayments`, `CLOSED_STATUSES`) — removes duplication across
+      metrics.js / leads.js / lead-detail.js / commission.js
+- [x] Per-lead payment detail (chevron expand in funnel drawer) — `/api/lead-detail`
+- [x] Monthly commission aggregation card on `metrics.html` — `/api/commission`
+- [x] `activity.html` action timestamps fixed at the API level (`creationTimestamp`)
