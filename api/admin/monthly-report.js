@@ -106,11 +106,14 @@ module.exports = async function handler(req, res) {
           affiliate_name:  nameByEmail.get(employeeid.toLowerCase()) || employeeid,
           leadIds: new Set(),
           revenue: 0, commission: 0, licenses: 0,
+          leads: [],
         };
         byAffiliate.set(employeeid, entry);
       }
 
-      entry.leadIds.add(d.body.id || f.name);
+      const leadId = d.body.id || f.name;
+      entry.leadIds.add(leadId);
+      entry.leads.push({ id: leadId, name: f.name || null, payments: monthPayments });
       monthPayments.forEach(p => {
         if (p.amount            != null) entry.revenue    += p.amount;
         if (p.commission_amount != null) entry.commission += p.commission_amount;
@@ -126,6 +129,7 @@ module.exports = async function handler(req, res) {
         revenue:         round2(a.revenue),
         commission:      round2(a.commission),
         licenses:        a.licenses,
+        leads:           a.leads,
       }))
       .sort((x, y) => y.revenue - x.revenue);
 

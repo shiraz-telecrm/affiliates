@@ -147,6 +147,7 @@
       color: #1e293b;
     }
     table.report tbody tr:last-child td { border-bottom: none; }
+    table.report tbody tr.aff-row:last-of-type td { border-bottom: none; }
     table.report tbody tr:hover { background: #f8fafc; }
     table.report tfoot td {
       padding: 14px 22px;
@@ -158,6 +159,44 @@
     .affiliate-name  { font-weight: 600; color: #0f172a; }
     .affiliate-email { font-size: 11px; color: #94a3b8; margin-top: 2px; }
     .commission-cell { color: #16a34a; font-weight: 600; }
+
+    /* ── Affiliate breakdown (expand row) ── */
+    table.report tbody tr.aff-row { cursor: pointer; }
+    .aff-name-wrap { display: flex; align-items: center; gap: 10px; }
+    .aff-chevron {
+      flex-shrink: 0;
+      width: 14px;
+      font-size: 12px;
+      color: #cbd5e1;
+      transition: transform 0.15s ease;
+    }
+    tr.aff-row.expanded .aff-chevron { transform: rotate(90deg); color: #2563eb; }
+    .aff-expand-row { display: none; }
+    .aff-expand-row.expanded { display: table-row; }
+    .aff-expand-row td { padding: 0; border-bottom: 1px solid #f8fafc; }
+    .aff-expand { padding: 4px 22px 18px 50px; background: #f8fafc; }
+    .aff-bd-sum { font-size: 11px; color: #94a3b8; text-align: right; margin-top: 8px; }
+
+    /* Payment cards — same pattern as the per-lead/commission breakup on metrics.html */
+    .payment-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-top: 8px;
+    }
+    .payment-date {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .payment-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 10px; }
+    .pg-label { display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+    .pg-value { display: block; font-size: 13px; font-weight: 700; color: #0f172a; }
+    .payment-empty { font-size: 12px; color: #94a3b8; padding: 10px 0; font-style: italic; }
 
     /* ── States ── */
     .loading, .err-state, .empty-state {
@@ -253,6 +292,10 @@
       const [y, m] = ym.split('-').map(Number);
       return new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
     }
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
 
     function showError(msg) {
       document.getElementById('loading').style.display = 'none';
@@ -283,7 +326,10 @@
       }
     }
 
+    let lastReportData = null; // cached /api/admin/monthly-report response, used for the breakup expand
+
     function render(d) {
+      lastReportData = d;
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = 'block';
 
@@ -316,16 +362,24 @@
       }
       empty.style.display = 'none';
 
-      tbody.innerHTML = rows.map(a => `
-        <tr>
+      tbody.innerHTML = rows.map((a, idx) => `
+        <tr class="aff-row" data-idx="${idx}" onclick="toggleAffiliate(${idx})">
           <td>
-            <div class="affiliate-name">${a.affiliate_name}</div>
-            <div class="affiliate-email">${a.affiliate_email}</div>
+            <div class="aff-name-wrap">
+              <span class="aff-chevron">&#8250;</span>
+              <div>
+                <div class="affiliate-name">${a.affiliate_name}</div>
+                <div class="affiliate-email">${a.affiliate_email}</div>
+              </div>
+            </div>
           </td>
           <td class="num">${a.leads_won}</td>
           <td class="num">${fmtINR(a.revenue)}</td>
           <td class="num commission-cell">${fmtINR(a.commission)}</td>
           <td class="num">${a.licenses}</td>
+        </tr>
+        <tr class="aff-expand-row" id="aff-expand-row-${idx}">
+          <td colspan="5"><div class="aff-expand" id="aff-expand-${idx}"></div></td>
         </tr>`).join('');
 
       tfoot.innerHTML = `
@@ -336,6 +390,63 @@
           <td class="num">${fmtINR(t.commission)}</td>
           <td class="num">${t.licenses ?? 0}</td>
         </tr>`;
+    }
+
+    // Expands an affiliate's row to show every lead/payment that contributed
+    // to their revenue, commission, and license totals for the month.
+    function toggleAffiliate(idx) {
+      const row       = document.querySelector(`tr.aff-row[data-idx="${idx}"]`);
+      const expandRow = document.getElementById(`aff-expand-row-${idx}`);
+      const expand    = document.getElementById(`aff-expand-${idx}`);
+      if (!row || !expandRow || !expand) return;
+
+      if (row.classList.contains('expanded')) {
+        row.classList.remove('expanded');
+        expandRow.classList.remove('expanded');
+        return;
+      }
+      row.classList.add('expanded');
+      expandRow.classList.add('expanded');
+      if (expand.dataset.loaded) return;
+      expand.dataset.loaded = '1';
+
+      const a = (lastReportData?.affiliates || [])[idx];
+      const leads = a?.leads || [];
+
+      let html = '';
+      let revSum = 0, commSum = 0, licSum = 0, count = 0;
+      leads.forEach(l => {
+        (l.payments || []).forEach(p => {
+          html += renderPaymentCard(p, l.name || '(Unnamed lead)');
+          if (p.amount            != null) revSum  += p.amount;
+          if (p.commission_amount != null) commSum += p.commission_amount;
+          if (p.licenses          != null) licSum  += p.licenses;
+          count++;
+        });
+      });
+
+      if (!html) {
+        expand.innerHTML = `<div class="payment-empty">No payment breakdown available.</div>`;
+        return;
+      }
+
+      expand.innerHTML = html + `<div class="aff-bd-sum">${count} payment${count === 1 ? '' : 's'} · ` +
+        `${fmtINR(Math.round(revSum * 100) / 100)} revenue · ` +
+        `${fmtINR(Math.round(commSum * 100) / 100)} commission · ` +
+        `${licSum} licenses</div>`;
+    }
+
+    function renderPaymentCard(p, leadName) {
+      return `
+        <div class="payment-card">
+          <div class="payment-date">${leadName ? `${leadName} · ` : ''}${fmtDate(p.date)}</div>
+          <div class="payment-grid">
+            ${p.amount            != null ? `<div><span class="pg-label">Amount</span><span class="pg-value">${fmtINR(p.amount)}</span></div>` : ''}
+            ${p.licenses          != null ? `<div><span class="pg-label">Licenses</span><span class="pg-value">${p.licenses}</span></div>` : ''}
+            ${p.discount          != null ? `<div><span class="pg-label">Discount</span><span class="pg-value">${p.discount}</span></div>` : ''}
+            ${p.commission_amount != null ? `<div><span class="pg-label">Commission</span><span class="pg-value">${fmtINR(p.commission_amount)}${p.commission_pct ? ` (${p.commission_pct})` : ''}</span></div>` : ''}
+          </div>
+        </div>`;
     }
 
     const monthInput = document.getElementById('monthInput');
