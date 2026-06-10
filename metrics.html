@@ -477,22 +477,67 @@
       if (months > 0) return `${months} months`;
       return `${days} days`;
     }
-    // Parses free-text bank details, e.g.
+    // Parses free-text bank details. Affiliates' payment_details fields use
+    // a few different shapes, e.g.:
     //   "Account Holder: PINTU MANDAL\nAccount Number: ...\nIFSC: ...\nBranch: ...\nAccount Type: ..."
     //   "Bank name -  ICICI bank\nAccount no –  ...\nAccount holder name - ...\nIFSC -  ..."
     //   "Name: Grow Medico\nIFSC Code: ...\nAccount No: ...\nBank: ..."
-    // Different affiliates use different labels/separators, so keys are
-    // normalised to lowercase and looked up via aliases (see pick()).
+    //   "PAN No AAICB2409H\nAccount Holder Name\nBada Business Private Limited\n
+    //    Bank Account Details\nHDFC- 50200037903577\nIFSC Code\nHDFC0001385"
+    // The last shape puts a label on its own line with its value on the
+    // following line (or, for "Bank Account Details", a "<bank code>- <a/c
+    // no>" pair on the next line). Keys are normalised to lowercase and
+    // looked up via aliases (see pick()).
     function parsePaymentDetails(raw) {
       if (!raw) return {};
       const r = {};
-      raw.split('\n').forEach(line => {
-        const idx = line.search(/[:\-–]/);
-        if (idx === -1) return;
-        const k = line.slice(0, idx).trim();
-        const v = line.slice(idx + 1).trim();
-        if (k && v) r[k.toLowerCase()] = v;
-      });
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+      // Lines that are *just* a field label, with the value on the line below
+      // (e.g. "IFSC Code" \n "HDFC0001385").
+      const EXACT_LABELS = [
+        'account holder name', 'account holder', 'account name',
+        'bank account details', 'bank account number', 'bank name', 'bank',
+        'account number', 'account no', 'a/c number', 'a/c no',
+        'ifsc code', 'ifsc', 'branch name', 'branch', 'account type',
+      ];
+      // Labels that appear inline with their value, space-separated, with no
+      // ":"/"-" (e.g. "PAN No AAICB2409H").
+      const INLINE_LABELS = ['pan number', 'pan no', 'pan'];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line  = lines[i];
+        const lower = line.toLowerCase();
+
+        // 1. "Label: Value" / "Label - Value" on the same line.
+        const sepIdx = line.search(/[:\-–]/);
+        if (sepIdx > -1) {
+          const k = line.slice(0, sepIdx).trim();
+          const v = line.slice(sepIdx + 1).trim();
+          if (k && v) { r[k.toLowerCase()] = v; continue; }
+        }
+
+        // 2. Inline "Label Value" with no separator (PAN-style).
+        const inlineLabel = INLINE_LABELS.find(l => lower.startsWith(l + ' '));
+        if (inlineLabel) {
+          const v = line.slice(inlineLabel.length).trim();
+          if (v) { r[inlineLabel] = v; continue; }
+        }
+
+        // 3. Standalone label line — value is the next line, unless that
+        // line is itself a label (or another "Label: Value" pair).
+        if (EXACT_LABELS.includes(lower) && i + 1 < lines.length) {
+          const next      = lines[i + 1];
+          const nextLower = next.toLowerCase();
+          const nextIsLabel = EXACT_LABELS.includes(nextLower)
+            || INLINE_LABELS.some(l => nextLower === l || nextLower.startsWith(l + ' '));
+          if (!nextIsLabel && next.search(/[:\-–]/) === -1) {
+            r[lower] = next;
+            i++;
+          }
+        }
+      }
+
       return r;
     }
     // Looks up the first matching alias (case-insensitive) in a parsed
@@ -504,6 +549,19 @@
       }
       return null;
     }
+    // IFSC prefixes (first 4 chars) → bank display name. Used to derive
+    // "Bank Name" when it isn't given as an explicit label, either from the
+    // IFSC code itself or from a "<bank code>- <account no>" pair (see
+    // parsePaymentDetails's "Bank Account Details" handling above).
+    const BANK_CODES = {
+      HDFC: 'HDFC Bank', ICIC: 'ICICI Bank', SBIN: 'State Bank of India',
+      PUNB: 'Punjab National Bank', UTIB: 'Axis Bank', KKBK: 'Kotak Mahindra Bank',
+      YESB: 'Yes Bank', CNRB: 'Canara Bank', BARB: 'Bank of Baroda',
+      IDFB: 'IDFC First Bank', INDB: 'IndusInd Bank', IOBA: 'Indian Overseas Bank',
+      UBIN: 'Union Bank of India', BKID: 'Bank of India', MAHB: 'Bank of Maharashtra',
+      PSIB: 'Punjab & Sind Bank', UCBA: 'UCO Bank', FDRL: 'Federal Bank',
+      RATN: 'RBL Bank', SIBL: 'South Indian Bank', BDBL: 'Bandhan Bank',
+    };
 
     async function load() {
       const email = new URLSearchParams(window.location.search).get('email');
@@ -604,11 +662,34 @@
       // Bank details
       const bank   = d.bank || {};
       const parsed = parsePaymentDetails(bank.payment_details);
+
+      let ifscCode      = pick(parsed, 'IFSC', 'IFSC Code') || bank.ifsc_code || null;
+      let bankName      = pick(parsed, 'Bank Name', 'Bank');
+      let accountNumber = pick(parsed, 'Account Number', 'Account No', 'Account no');
+
+      // Fallback: an unrecognised "<label> - <value>" pair where the value
+      // is a long digit string is very likely "<bank code> - <account no>"
+      // (e.g. "HDFC- 50200037903577") — use it for Account Number, and the
+      // leftover label (a bank code) for Bank Name if we don't have one.
+      if (!accountNumber || !bankName) {
+        for (const [k, v] of Object.entries(parsed)) {
+          if (/^\d{9,18}$/.test(v)) {
+            if (!accountNumber) accountNumber = v;
+            if (!bankName && BANK_CODES[k.toUpperCase()]) bankName = BANK_CODES[k.toUpperCase()];
+            break;
+          }
+        }
+      }
+      // Fallback: derive the bank name from the IFSC code's bank prefix.
+      if (!bankName && ifscCode) {
+        bankName = BANK_CODES[ifscCode.slice(0, 4).toUpperCase()] || null;
+      }
+
       const bFields = [
         { label: 'Account Name',   value: pick(parsed, 'Account Holder', 'Account holder name', 'Account Name', 'Name') },
-        { label: 'Bank Name',      value: pick(parsed, 'Bank Name', 'Bank') },
-        { label: 'Account Number', value: pick(parsed, 'Account Number', 'Account No', 'Account no') },
-        { label: 'IFSC Code',      value: pick(parsed, 'IFSC', 'IFSC Code') || bank.ifsc_code || null },
+        { label: 'Bank Name',      value: bankName },
+        { label: 'Account Number', value: accountNumber },
+        { label: 'IFSC Code',      value: ifscCode },
         { label: 'Branch',         value: pick(parsed, 'Branch', 'Branch Name') },
         { label: 'Account Type',   value: pick(parsed, 'Account Type', 'Type') },
       ];
