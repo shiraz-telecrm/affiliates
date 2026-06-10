@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Affiliate Admin — TeleCRM</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #f1f5f9;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #0f172a;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      background: #0f172a;
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .logo { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #38bdf8; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .admin-tag { font-size: 12px; color: #94a3b8; }
+    .admin-tag b { color: #e2e8f0; }
+    .back { font-size: 13px; color: #94a3b8; text-decoration: none; }
+    .back:hover { color: #ffffff; }
+
+    /* ── Page wrapper ── */
+    .page { max-width: 1100px; margin: 0 auto; padding: 32px 20px 64px; }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header .sub { color: #64748b; font-size: 13px; margin-top: 4px; }
+
+    .month-picker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 8px 14px;
+    }
+    .month-picker label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .month-picker input {
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      font-family: inherit;
+      background: transparent;
+    }
+    .month-picker input:focus { outline: none; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin: 0 0 12px 2px;
+    }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 20px 22px;
+    }
+    .stat-card .sc-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .stat-card .sc-value { font-size: 24px; font-weight: 700; line-height: 1; }
+    .stat-card .sc-sub   { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+    .sc-green  .sc-value { color: #16a34a; }
+    .sc-amber  .sc-value { color: #d97706; }
+    .sc-blue   .sc-value { color: #2563eb; }
+    .sc-purple .sc-value { color: #7c3aed; }
+
+    /* ── White content card ── */
+    .content-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 0;
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .content-card-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .content-card-title { font-size: 14px; font-weight: 700; color: #0f172a; }
+    .content-card-note  { font-size: 12px; color: #94a3b8; }
+
+    /* ── Report table ── */
+    table.report {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    table.report th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 12px 22px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    table.report th.num, table.report td.num { text-align: right; }
+    table.report td {
+      padding: 13px 22px;
+      border-bottom: 1px solid #f8fafc;
+      color: #1e293b;
+    }
+    table.report tbody tr:last-child td { border-bottom: none; }
+    table.report tbody tr:hover { background: #f8fafc; }
+    table.report tfoot td {
+      padding: 14px 22px;
+      font-weight: 700;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      color: #0f172a;
+    }
+    .affiliate-name  { font-weight: 600; color: #0f172a; }
+    .affiliate-email { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .commission-cell { color: #16a34a; font-weight: 600; }
+
+    /* ── States ── */
+    .loading, .err-state, .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: #94a3b8;
+      font-size: 15px;
+    }
+    .err-state { color: #dc2626; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="logo">TeleCRM — Affiliates Admin</div>
+    <div class="topbar-right">
+      <span class="admin-tag">Admin: <b id="adminEmail"></b></span>
+      <a class="back" href="index.html">← Back</a>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-header">
+      <div>
+        <h1>Monthly Affiliate Performance</h1>
+        <div class="sub">Leads won, revenue, commission paid, and licenses sold — per affiliate, from the master affiliate workspace.</div>
+      </div>
+      <div class="month-picker">
+        <label for="monthInput">Month</label>
+        <input type="month" id="monthInput" />
+      </div>
+    </div>
+
+    <div class="loading" id="loading"><div class="spinner"></div>Crunching the numbers… this can take 10-20 seconds.</div>
+    <div class="err-state" id="errState" style="display:none"></div>
+
+    <div id="content" style="display:none">
+
+      <div class="section-label">Combined — All Affiliates</div>
+      <div class="stats-grid" id="totals"></div>
+
+      <div class="section-label">By Affiliate</div>
+      <div class="content-card">
+        <div class="content-card-header">
+          <div class="content-card-title">Affiliate Breakdown</div>
+          <div class="content-card-note" id="scannedNote"></div>
+        </div>
+        <table class="report">
+          <thead>
+            <tr>
+              <th>Affiliate</th>
+              <th class="num">Leads Won</th>
+              <th class="num">Revenue</th>
+              <th class="num">Commission Paid</th>
+              <th class="num">Licenses</th>
+            </tr>
+          </thead>
+          <tbody id="reportBody"></tbody>
+          <tfoot id="reportFoot"></tfoot>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none">No affiliate activity recorded for this month.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost' || window.location.protocol === 'file:'
+      ? 'https://affiliates-lac.vercel.app' : '';
+
+    const params = new URLSearchParams(window.location.search);
+    const adminEmail = params.get('admin') || 'shiraz@telecrm.in';
+    document.getElementById('adminEmail').textContent = adminEmail;
+
+    function defaultMonth() {
+      return params.get('month') || '2026-05';
+    }
+
+    function fmtINR(n) {
+      if (n == null) return '—';
+      return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    }
+    function fmtMonth(ym) {
+      const [y, m] = ym.split('-').map(Number);
+      return new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    }
+
+    function showError(msg) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'none';
+      const el = document.getElementById('errState');
+      el.innerHTML = msg; el.style.display = 'block';
+    }
+
+    async function load(month) {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('errState').style.display = 'none';
+      document.getElementById('content').style.display = 'none';
+
+      // Reflect state in the URL for shareable links
+      const url = new URL(window.location);
+      url.searchParams.set('admin', adminEmail);
+      url.searchParams.set('month', month);
+      window.history.replaceState({}, '', url);
+
+      try {
+        const qs  = new URLSearchParams({ admin: adminEmail, month });
+        const res = await fetch(`${API_BASE}/api/admin/monthly-report?${qs}`);
+        const data = await res.json();
+        if (!res.ok) { showError(data.error || `Error ${res.status}`); return; }
+        render(data);
+      } catch (e) {
+        showError('Could not reach the server. Please try again.');
+      }
+    }
+
+    function render(d) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+
+      const t = d.totals || {};
+      document.getElementById('totals').innerHTML = [
+        { label: 'Leads Won',      value: t.leads_won ?? 0,        sub: fmtMonth(d.month), cls: 'sc-blue' },
+        { label: 'Total Revenue',  value: fmtINR(t.revenue),       sub: 'across all affiliates', cls: 'sc-green' },
+        { label: 'Commission Paid',value: fmtINR(t.commission),    sub: 'shared with affiliates', cls: 'sc-amber' },
+        { label: 'Licenses Sold',  value: t.licenses ?? 0,         sub: 'combined this month', cls: 'sc-purple' },
+      ].map(s => `
+        <div class="stat-card ${s.cls}">
+          <div class="sc-label">${s.label}</div>
+          <div class="sc-value">${s.value}</div>
+          <div class="sc-sub">${s.sub}</div>
+        </div>`).join('');
+
+      document.getElementById('scannedNote').textContent =
+        d.leads_scanned != null ? `${d.leads_scanned} leads scanned` : '';
+
+      const rows = d.affiliates || [];
+      const tbody = document.getElementById('reportBody');
+      const tfoot = document.getElementById('reportFoot');
+      const empty = document.getElementById('emptyState');
+
+      if (!rows.length) {
+        tbody.innerHTML = '';
+        tfoot.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      tbody.innerHTML = rows.map(a => `
+        <tr>
+          <td>
+            <div class="affiliate-name">${a.affiliate_name}</div>
+            <div class="affiliate-email">${a.affiliate_email}</div>
+          </td>
+          <td class="num">${a.leads_won}</td>
+          <td class="num">${fmtINR(a.revenue)}</td>
+          <td class="num commission-cell">${fmtINR(a.commission)}</td>
+          <td class="num">${a.licenses}</td>
+        </tr>`).join('');
+
+      tfoot.innerHTML = `
+        <tr>
+          <td>Total (${rows.length} affiliate${rows.length === 1 ? '' : 's'})</td>
+          <td class="num">${t.leads_won ?? 0}</td>
+          <td class="num">${fmtINR(t.revenue)}</td>
+          <td class="num">${fmtINR(t.commission)}</td>
+          <td class="num">${t.licenses ?? 0}</td>
+        </tr>`;
+    }
+
+    const monthInput = document.getElementById('monthInput');
+    monthInput.value = defaultMonth();
+    monthInput.addEventListener('change', () => {
+      if (monthInput.value) load(monthInput.value);
+    });
+
+    load(defaultMonth());
+  </script>
+</body>
+</html>

@@ -43,6 +43,40 @@ async function getLeadDetail(token, enterpriseId, id, { includeActions = false, 
   return tcrm(token, `/enterprise/${enterpriseId}/lead/${id}${qs}`);
 }
 
+// Fetch every team member in the master workspace ({name, email}), paginated
+// 10 at a time, cached in-memory for the lifetime of the warm serverless
+// instance. Used by the admin monthly report to map a lead's `employeeid`
+// (the affiliate's master-workspace login email) to a display name.
+let _teamMembersCache = null;
+async function getAllTeamMembers() {
+  if (_teamMembersCache) return _teamMembersCache;
+
+  const first = await tcrm(MASTER_TOKEN, `/enterprise/${MASTER_ID}/team-members?limit=10&skip=0`);
+  if (first.status !== 200) return [];
+
+  const totalCount = first.body?.total_count || 0;
+  const allPages   = [first.body?.data || []];
+
+  const remaining = Math.ceil((totalCount - 10) / 10);
+  if (remaining > 0) {
+    const skips = Array.from({ length: remaining }, (_, i) => (i + 1) * 10);
+    for (let i = 0; i < skips.length; i += 10) {
+      const batch = await Promise.all(
+        skips.slice(i, i + 10).map(skip =>
+          tcrm(MASTER_TOKEN, `/enterprise/${MASTER_ID}/team-members?limit=10&skip=${skip}`)
+        )
+      );
+      allPages.push(...batch.map(r => r.body?.data || []));
+    }
+  }
+
+  _teamMembersCache = allPages.flat().map(m => ({
+    name:  m.name || null,
+    email: (m.email || '').toLowerCase(),
+  }));
+  return _teamMembersCache;
+}
+
 // Find a team member's login email in the master workspace by matching their name.
 // Fetches first page to get total_count, then searches all pages in parallel batches.
 async function findMasterEmail(name) {
@@ -172,4 +206,5 @@ module.exports = {
   MASTER_ID, MASTER_TOKEN, PARTNER_ID, PARTNER_TOKEN, BASE,
   CLOSED_STATUSES, COMMISSION_STATUSES,
   tcrm, searchLeads, countLeads, getLeadDetail, findMasterEmail, extractPayments,
+  getAllTeamMembers,
 };
