@@ -203,6 +203,54 @@ this becomes a problem at scale.
 
 ---
 
+### 15. Admin monthly affiliate report — ✅ Done (v1)
+**Priority:** High · **Effort:** Medium
+
+`GET /api/admin/monthly-report?admin=shiraz@telecrm.in&month=YYYY-MM` and
+`admin.html` give a cross-affiliate, month-by-month breakdown sourced from
+the master workspace: per affiliate — leads won, total revenue, total
+commission paid, and total licenses sold — plus a combined totals row.
+
+Implementation:
+- Scans every `Won` / `Payment Done` / `Payment Pending` lead in the master
+  workspace (~191 as of June 2026), fetches each one's action history in
+  concurrency-limited batches of 20, and reuses `extractPayments()` (same
+  de-duped payment events as `/api/commission`), filtering to records whose
+  `date` falls in the requested month.
+- A lead is attributed to an affiliate via `fields.employeeid` (the
+  affiliate's master-workspace login email — same value the `assignee`
+  search filter matches against). Leads with no `employeeid` (direct /
+  non-affiliate leads) are excluded.
+- Affiliate display names come from `getAllTeamMembers()` (new helper in
+  `_lib/telecrm.js`, paginates all master-workspace team members, cached
+  per warm instance).
+- "Leads won" = distinct leads with **any** payment event in the month,
+  regardless of current status (so a `Payment Pending` lead with a May
+  commission record still counts toward May).
+- `vercel.json` sets `maxDuration: 60` for this function; live response
+  for May 2026 (191 leads scanned, 19 affiliates) takes ~8s.
+- Validated against May 2026: ₹8,36,101 total revenue, ₹86,092.38 total
+  commission, 70 licenses, 37 leads across 19 affiliates.
+
+**Follow-ups:**
+- Admin gate is a hardcoded allowlist (`ADMIN_EMAILS = ['shiraz@telecrm.in']`
+  in `api/admin/monthly-report.js`) — replace with real auth once Phase 3
+  (#5) lands.
+- April 2026 shows commission/licenses = 0 for every affiliate while
+  revenue is non-zero — looks like the commission/order action automation
+  wasn't fully in place that early; not a bug in this report, just sparser
+  source data for older months.
+- Some May affiliates show `commission: 0` despite revenue > 0 (e.g. Sahil
+  Aggarwal, Vibhor Bhimsariya) — their leads have an order/amount action but
+  no matching commission action logged yet in TeleCRM.
+- `extractPayments()` date is a UTC ISO string sliced to `YYYY-MM` — late
+  night IST events near month boundaries could be attributed to the
+  adjacent UTC month. Low impact, not yet handled.
+- Combine with #12 (caching) if this report is checked often — currently
+  re-scans all ~191 leads on every request.
+
+---
+
 ## ✅ Done
 
 - [x] Phase 1 — Static frontend + Vercel backend scaffold
@@ -220,3 +268,7 @@ this becomes a problem at scale.
 - [x] Per-lead payment detail (chevron expand in funnel drawer) — `/api/lead-detail`
 - [x] Monthly commission aggregation card on `metrics.html` — `/api/commission`
 - [x] `activity.html` action timestamps fixed at the API level (`creationTimestamp`)
+- [x] Robust bank-details parsing across differing `payment_details` formats
+      (`Account Holder:` vs `Account holder name -` vs `Name:`, etc.) +
+      surface Branch / Account Type fields on `metrics.html`
+- [x] Admin monthly affiliate report (`admin.html`, `/api/admin/monthly-report`) — see #15
