@@ -10,7 +10,7 @@ import { jwtVerify } from 'jose';
 
 const SESSION_COOKIE = 'session';
 
-// Only these Google accounts are allowed to sign in.
+// Only these emails are allowed to sign in.
 const ADMIN_EMAILS = ['shiraz@telecrm.in'];
 
 // Paths that must remain reachable without a session (the login page itself
@@ -48,7 +48,14 @@ export default async function middleware(req) {
     }
   }
 
-  if (email && ADMIN_EMAILS.includes(email)) return;
+  if (email && ADMIN_EMAILS.includes(email)) {
+    // The old affiliate self-service landing page is orphaned now that the
+    // whole site is admin-gated — send the admin straight to the dashboard.
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+      return Response.redirect(new URL('/admin.html', req.url), 302);
+    }
+    return;
+  }
 
   if (url.pathname.startsWith('/api/')) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
