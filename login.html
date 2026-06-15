@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign in — TeleCRM Affiliates</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -46,7 +45,6 @@
       max-width: 420px;
       box-shadow: 0 4px 24px rgba(15,23,42,0.10);
       border: 1px solid #e2e8f0;
-      text-align: center;
     }
 
     .card-eyebrow {
@@ -72,22 +70,57 @@
       line-height: 1.6;
     }
 
-    .g-signin-wrap {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 8px;
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 7px;
     }
+
+    input[type="email"] {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+      color: #0f172a;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 16px;
+    }
+    input[type="email"]:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
+      background: #fff;
+    }
+    input[type="email"]::placeholder { color: #94a3b8; }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: #2563eb;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #1d4ed8; }
+    button:disabled { background: #93c5fd; cursor: default; }
 
     .error {
       display: none;
-      margin-top: 20px;
+      margin-top: 12px;
       padding: 10px 14px;
       background: #fef2f2;
       border: 1px solid #fecaca;
       border-radius: 8px;
       font-size: 13px;
       color: #dc2626;
-      text-align: left;
     }
   </style>
 </head>
@@ -100,50 +133,61 @@
     <div class="card">
       <div class="card-eyebrow">Restricted Access</div>
       <h1>Sign in to continue</h1>
-      <p class="subtitle">This dashboard is restricted to authorized TeleCRM accounts.</p>
+      <p class="subtitle">This dashboard is restricted to authorized TeleCRM accounts. Enter your TeleCRM email to continue.</p>
 
-      <div class="g-signin-wrap" id="g_id_signin"></div>
-      <div class="error" id="error"></div>
+      <form id="loginForm">
+        <label for="email">Email address</label>
+        <input type="email" id="email" placeholder="you@telecrm.in" required autocomplete="email" />
+        <button type="submit" id="submitBtn">Sign in &rarr;</button>
+        <div class="error" id="error"></div>
+      </form>
     </div>
   </div>
 
   <script>
-    // Public OAuth client ID — safe to embed in frontend code.
-    const GOOGLE_CLIENT_ID = 'REPLACE_WITH_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+    const form      = document.getElementById('loginForm');
+    const emailEl   = document.getElementById('email');
+    const errorEl   = document.getElementById('error');
+    const submitBtn = document.getElementById('submitBtn');
 
     function showError(msg) {
-      const el = document.getElementById('error');
-      el.textContent = msg;
-      el.style.display = 'block';
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
     }
 
-    function handleCredentialResponse(response) {
-      fetch('/api/auth/google', {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const email = emailEl.value.trim();
+      if (!email || !email.includes('@')) {
+        showError('Please enter a valid email address.');
+        return;
+      }
+
+      errorEl.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in…';
+
+      fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential }),
+        body: JSON.stringify({ email }),
       })
         .then(async r => ({ ok: r.ok, data: await r.json() }))
         .then(({ ok, data }) => {
           if (!ok) {
             showError(data.error || 'Sign-in failed.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign in →';
             return;
           }
           const redirect = new URLSearchParams(window.location.search).get('redirect') || '/';
           window.location.href = redirect;
         })
-        .catch(() => showError('Could not reach the server. Please try again.'));
-    }
-
-    window.addEventListener('load', function () {
-      google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleCredentialResponse,
-      });
-      google.accounts.id.renderButton(
-        document.getElementById('g_id_signin'),
-        { theme: 'outline', size: 'large', width: 320 }
-      );
+        .catch(() => {
+          showError('Could not reach the server. Please try again.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign in →';
+        });
     });
   </script>
 </body>

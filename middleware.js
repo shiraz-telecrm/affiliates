@@ -1,6 +1,6 @@
 // Vercel Edge Middleware — runs on every request to this project (static
 // HTML pages and /api/* functions alike) and gates the whole site behind a
-// signed session cookie issued by /api/auth/google.
+// signed session cookie issued by /api/auth/login.
 //
 // NOTE: ADMIN_EMAILS and SESSION_COOKIE are duplicated from api/_lib/auth.js
 // (this file runs on the Edge runtime via ESM and can't share a CJS module
@@ -17,7 +17,7 @@ const ADMIN_EMAILS = ['shiraz@telecrm.in'];
 // and the endpoints it calls).
 const PUBLIC_PATHS = new Set([
   '/login.html',
-  '/api/auth/google',
+  '/api/auth/login',
   '/api/auth/logout',
 ]);
 
