@@ -26,8 +26,11 @@
       z-index: 50;
     }
     .logo { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #38bdf8; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
     .back { font-size: 13px; color: #94a3b8; text-decoration: none; }
     .back:hover { color: #ffffff; }
+    .sign-out { font-size: 13px; color: #94a3b8; text-decoration: none; }
+    .sign-out:hover { color: #ffffff; }
 
     /* ── Page wrapper ── */
     .page { max-width: 900px; margin: 0 auto; padding: 32px 20px 64px; }
@@ -398,7 +401,10 @@
 
   <div class="topbar">
     <div class="logo">TeleCRM — Affiliates</div>
-    <a class="back" href="index.html">← Back</a>
+    <div class="topbar-right">
+      <a class="back" href="index.html">← Back</a>
+      <a class="sign-out" href="/api/auth/logout">Sign out</a>
+    </div>
   </div>
 
   <div class="page">

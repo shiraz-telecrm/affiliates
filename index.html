@@ -20,8 +20,11 @@
       background: #0f172a;
       padding: 16px 24px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
     }
+    .sign-out { font-size: 13px; color: #94a3b8; text-decoration: none; }
+    .sign-out:hover { color: #ffffff; }
     .logo {
       font-size: 13px;
       font-weight: 700;
@@ -144,6 +147,7 @@
 <body>
   <div class="topbar">
     <div class="logo">TeleCRM &mdash; Affiliates</div>
+    <a class="sign-out" href="/api/auth/logout">Sign out</a>
   </div>
 
   <div class="page">

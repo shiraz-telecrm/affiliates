@@ -34,6 +34,15 @@
     }
     .back:hover { color: #94a3b8; }
 
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .sign-out {
+      font-size: 13px;
+      color: #64748b;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .sign-out:hover { color: #94a3b8; }
+
     /* ── User header ── */
     .user-header {
       max-width: 760px;
@@ -167,7 +176,10 @@
 
   <div class="topbar">
     <div class="logo">TeleCRM &mdash; Affiliates</div>
-    <a class="back" href="index.html">&larr; Back</a>
+    <div class="topbar-right">
+      <a class="back" href="index.html">&larr; Back</a>
+      <a class="sign-out" href="/api/auth/logout">Sign out</a>
+    </div>
   </div>
 
   <!-- Loading -->

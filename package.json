@@ -1,0 +1,8 @@
+{
+  "name": "affiliates-portal",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "jose": "^4.15.5"
+  }
+}
