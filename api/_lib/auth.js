@@ -1,4 +1,4 @@
-// Shared session helpers for the sign-in gate.
+// Shared session helpers for the Google Sign-In gate.
 //
 // NOTE: ADMIN_EMAILS and SESSION_COOKIE are duplicated in middleware.js
 // (which runs on the Edge runtime and can't share a CJS module with the
@@ -9,7 +9,9 @@ const { SignJWT } = require('jose');
 const SESSION_COOKIE   = 'session';
 const SESSION_MAX_AGE  = 60 * 60 * 24 * 7; // 7 days
 
-// Only these emails are allowed to sign in.
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+
+// Only these Google accounts are allowed to sign in.
 const ADMIN_EMAILS = ['shiraz@telecrm.in'];
 
 async function signSession(email, name) {
@@ -31,6 +33,7 @@ function clearCookie() {
 
 module.exports = {
   SESSION_COOKIE,
+  GOOGLE_CLIENT_ID,
   ADMIN_EMAILS,
   signSession,
   sessionCookie,
